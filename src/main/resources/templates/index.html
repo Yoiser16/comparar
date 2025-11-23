@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Auditoría</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        slate: { 850: '#1e293b', 900: '#0f172a' },
+                        accent: '#f97316',
+                        brand: '#3b82f6',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="font-sans text-slate-800 antialiased bg-gray-50">
+
+    <div class="min-h-screen flex flex-col relative">
+        
+        <div class="bg-slate-900 text-white pt-12 pb-24 relative overflow-hidden shadow-xl z-10">
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-500 via-blue-400 to-accent"></div>
+            
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                <div class="text-center mb-10">
+                    <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-4">
+                        AUDITORÍA Y CRUCE DE REGISTROS
+                    </h1>
+                    <p class="text-slate-400 max-w-2xl mx-auto text-lg font-light">
+                        Herramienta de conciliación automatizada para bases de datos. Compara identificadores únicos entre fuentes heterogéneas (CSV y Excel).
+                    </p>
+                </div>
+
+                <div class="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 p-1 md:p-8 max-w-4xl mx-auto relative top-4">
+                    
+                    <div th:if="${error}" class="mb-6 mx-4 bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded flex items-center gap-3">
+                        <svg class="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span class="font-mono text-sm" th:text="${error}">Error message</span>
+                    </div>
+
+                    <form action="/compare" method="post" enctype="multipart/form-data" id="uploadForm" class="grid grid-cols-1 md:grid-cols-11 gap-6 items-center p-4">
+                        
+                        <div class="md:col-span-5 group">
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Fuente Primaria (CSV)</label>
+                            <input type="file" name="csvFile" id="csvFile" accept=".csv" class="hidden" onchange="updateUI(this, 'csvBox', 'csvIcon')">
+                            <label for="csvFile" id="csvBox" class="flex flex-col items-center justify-center h-32 border-2 border-dashed border-slate-600 rounded-xl cursor-pointer hover:border-brand-500 hover:bg-slate-700/50 transition-all">
+                                <svg id="csvIcon" class="w-8 h-8 text-slate-500 mb-2 group-hover:text-brand-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                <span class="text-sm font-mono text-slate-300 file-name">Seleccionar .CSV</span>
+                            </label>
+                        </div>
+
+                        <div class="md:col-span-1 flex justify-center">
+                            <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-400">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-5 group">
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Fuente Secundaria (Excel)</label>
+                            <input type="file" name="excelFile" id="excelFile" accept=".xlsx,.xls" class="hidden" onchange="updateUI(this, 'excelBox', 'excelIcon')">
+                            <label for="excelFile" id="excelBox" class="flex flex-col items-center justify-center h-32 border-2 border-dashed border-slate-600 rounded-xl cursor-pointer hover:border-emerald-500 hover:bg-slate-700/50 transition-all">
+                                <svg id="excelIcon" class="w-8 h-8 text-slate-500 mb-2 group-hover:text-emerald-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 5h14a2 2 0 002-2V5a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                                <span class="text-sm font-mono text-slate-300 file-name">Seleccionar .XLSX</span>
+                            </label>
+                        </div>
+
+                        <div class="md:col-span-11 mt-2">
+                            <button type="submit" id="submitBtn" class="w-full py-4 px-6 bg-accent hover:bg-orange-600 text-white font-bold rounded-lg shadow-lg transform transition hover:-translate-y-0.5 focus:ring-4 focus:ring-orange-500/30 flex items-center justify-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                                EJECUTAR ANÁLISIS COMPARATIVO
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-grow flex flex-col justify-center py-12 bg-gray-50">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
+                            <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-mono rounded">CSV</span>
+                            Archivo de Origen
+                        </h3>
+                        <p class="text-slate-600 text-sm leading-relaxed">
+                            El sistema acepta archivos CSV. Se recomienda codificación UTF-8. El motor buscará columnas ID para indexar.
+                        </p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
+                            <span class="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-mono rounded">XLSX</span>
+                            Archivo de Cruce
+                        </h3>
+                        <p class="text-slate-600 text-sm leading-relaxed">
+                            Soporta Excel (.xlsx/.xls). El sistema aplanará la primera hoja del libro para realizar la búsqueda.
+                        </p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                            Lógica de Proceso
+                        </h3>
+                        <p class="text-slate-600 text-sm leading-relaxed">
+                            El algoritmo normaliza los IDs para garantizar coincidencias exactas y genera un reporte detallado.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer class="bg-slate-900 border-t-4 border-accent/20 py-6">
+        <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-center md:justify-between gap-4">
+            
+            <div class="flex items-center gap-4">
+                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    Desarrollado por
+                </p>
+                <div class="flex items-center gap-3 group cursor-pointer">
+                    <img th:src="@{/logo.jpeg}" src="/logo.jpeg" alt="WebsarrolLab" class="h-10 w-auto rounded-full border-2 border-slate-700 group-hover:border-accent transition-colors">
+                    <span class="text-white font-bold tracking-tight group-hover:text-accent transition-colors">WebsarrolLab</span>
+                </div>
+            </div>
+            
+            <div class="text-[10px] text-slate-500 font-mono">
+                © 2025 • Medellín, Colombia
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function updateUI(input, boxId, iconId) {
+            const box = document.getElementById(boxId);
+            const icon = document.getElementById(iconId);
+            const span = box.querySelector('.file-name');
+            
+            if (input.files && input.files[0]) {
+                span.textContent = input.files[0].name;
+                span.classList.add('text-white', 'font-bold');
+                span.classList.remove('text-slate-300');
+                box.classList.remove('border-dashed', 'border-slate-600');
+                box.classList.add('border-solid', 'border-brand-500', 'bg-slate-700');
+                icon.classList.add('text-white');
+                icon.classList.remove('text-slate-500');
+            }
+        }
+
+        document.getElementById('uploadForm').addEventListener('submit', function() {
+            const btn = document.getElementById('submitBtn');
+            btn.innerHTML = '<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> PROCESANDO...';
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+        });
+    </script>
+</body>
+</html>

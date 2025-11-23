@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Auditoría Detallado</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        slate: { 850: '#1e293b', 900: '#0f172a' },
+                        accent: '#f97316', // Naranja
+                        brand: '#3b82f6',  // Azul
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Estilo para ocultar/mostrar pestañas */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .tab-btn.active { border-bottom-color: #f97316; color: #f97316; }
+    </style>
+</head>
+<body class="bg-gray-100 text-slate-800 min-h-screen">
+
+    <div class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center py-4 gap-4">
+                <div class="flex items-center gap-4">
+                    <a href="/" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    </a>
+                    <h1 class="text-xl font-bold text-slate-900 uppercase tracking-tight">Auditoría de Datos</h1>
+                </div>
+                
+                <div class="flex gap-2 text-xs">
+                    <div class="px-3 py-1 bg-green-100 text-green-800 rounded border border-green-200 font-bold">
+                        MATCH: <span th:text="${result.totalMatches}">0</span>
+                    </div>
+                    <div class="px-3 py-1 bg-blue-100 text-blue-800 rounded border border-blue-200 font-bold">
+                        SOLO CSV: <span th:text="${result.onlyInCsv.size()}">0</span>
+                    </div>
+                    <div class="px-3 py-1 bg-emerald-100 text-emerald-800 rounded border border-emerald-200 font-bold">
+                        SOLO EXCEL: <span th:text="${result.onlyInExcel.size()}">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex space-x-8 border-t border-slate-100 mt-2 pt-1">
+                <button onclick="switchTab('matches')" id="btn-matches" class="tab-btn active py-3 text-sm font-bold text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-all uppercase tracking-wide">
+                    Coincidencias
+                </button>
+                <button onclick="switchTab('csv')" id="btn-csv" class="tab-btn py-3 text-sm font-bold text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-all uppercase tracking-wide">
+                    Solo en CSV
+                </button>
+                <button onclick="switchTab('excel')" id="btn-excel" class="tab-btn py-3 text-sm font-bold text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-all uppercase tracking-wide">
+                    Solo en Excel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <div class="mb-6 relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+            <input type="text" id="searchBox" onkeyup="filterCards()" class="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent sm:text-sm shadow-sm" placeholder="Buscar ID o datos en la pestaña actual...">
+        </div>
+
+        <div id="tab-matches" class="tab-content active">
+            <div class="grid gap-4 card-container">
+                <div th:each="record : ${result.matchingRecords}" class="search-item bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden hover:border-accent transition-colors">
+                    <div class="grid grid-cols-1 lg:grid-cols-12">
+                        <div class="lg:col-span-1 bg-slate-50 border-r border-slate-200 p-4 flex lg:flex-col items-center justify-center text-center">
+                            <span class="text-xs font-bold text-slate-400 uppercase">ID</span>
+                            <span class="text-lg font-mono font-bold text-slate-800" th:text="${record.id}">001</span>
+                            <span class="mt-1 px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded border border-green-200">MATCH</span>
+                        </div>
+                        <div class="lg:col-span-11 p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 class="text-xs font-bold text-blue-600 uppercase mb-2 border-b border-blue-100">CSV</h4>
+                                <dl class="text-sm grid gap-1">
+                                    <div th:each="entry : ${record.data}" th:if="${#strings.startsWith(entry.key, 'CSV_')}" class="grid grid-cols-3">
+                                        <dt class="text-slate-500 col-span-1" th:text="${#strings.substringAfter(entry.key, 'CSV_')}"></dt>
+                                        <dd class="text-slate-900 font-mono col-span-2 font-medium" th:text="${entry.value}"></dd>
+                                    </div>
+                                </dl>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-emerald-600 uppercase mb-2 border-b border-emerald-100">Excel</h4>
+                                <dl class="text-sm grid gap-1">
+                                    <div th:each="entry : ${record.data}" th:if="${#strings.startsWith(entry.key, 'Excel_')}" class="grid grid-cols-3">
+                                        <dt class="text-slate-500 col-span-1" th:text="${#strings.substringAfter(entry.key, 'Excel_')}"></dt>
+                                        <dd class="text-slate-900 font-mono col-span-2 font-medium" th:text="${entry.value}"></dd>
+                                    </div>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div th:if="${#lists.isEmpty(result.matchingRecords)}" class="text-center py-12 text-slate-500 italic border-2 border-dashed border-slate-200 rounded-lg">
+                    No hay coincidencias.
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-csv" class="tab-content">
+            <div class="grid gap-4 card-container">
+                <div th:each="id : ${result.onlyInCsv}" th:with="rec=${result.csvRecordsMap.get(id)}" class="search-item bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden hover:border-blue-400 transition-colors">
+                    <div class="grid grid-cols-1 lg:grid-cols-12">
+                        <div class="lg:col-span-1 bg-blue-50/30 border-r border-slate-200 p-4 flex lg:flex-col items-center justify-center text-center">
+                            <span class="text-xs font-bold text-slate-400 uppercase">ID</span>
+                            <span class="text-lg font-mono font-bold text-blue-700" th:text="${id}">001</span>
+                            <span class="mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded border border-blue-200">CSV</span>
+                        </div>
+                        <div class="lg:col-span-11 p-4">
+                            <h4 class="text-xs font-bold text-blue-600 uppercase mb-2 border-b border-blue-100">Datos únicos en CSV</h4>
+                            <dl class="text-sm grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+                                <div th:if="${rec != null}" th:each="entry : ${rec.data}" class="grid grid-cols-3 border-b border-slate-50 pb-1">
+                                    <dt class="text-slate-500 col-span-1" th:text="${entry.key}"></dt>
+                                    <dd class="text-slate-900 font-mono col-span-2 font-medium" th:text="${entry.value}"></dd>
+                                </div>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+                <div th:if="${#lists.isEmpty(result.onlyInCsv)}" class="text-center py-12 text-slate-500 italic border-2 border-dashed border-slate-200 rounded-lg">
+                    ¡Increíble! Todos los registros del CSV están en Excel.
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-excel" class="tab-content">
+            <div class="grid gap-4 card-container">
+                <div th:each="id : ${result.onlyInExcel}" th:with="rec=${result.excelRecordsMap.get(id)}" class="search-item bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden hover:border-emerald-400 transition-colors">
+                    <div class="grid grid-cols-1 lg:grid-cols-12">
+                        <div class="lg:col-span-1 bg-emerald-50/30 border-r border-slate-200 p-4 flex lg:flex-col items-center justify-center text-center">
+                            <span class="text-xs font-bold text-slate-400 uppercase">ID</span>
+                            <span class="text-lg font-mono font-bold text-emerald-700" th:text="${id}">001</span>
+                            <span class="mt-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded border border-emerald-200">EXCEL</span>
+                        </div>
+                        <div class="lg:col-span-11 p-4">
+                            <h4 class="text-xs font-bold text-emerald-600 uppercase mb-2 border-b border-emerald-100">Datos únicos en Excel</h4>
+                            <dl class="text-sm grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+                                <div th:if="${rec != null}" th:each="entry : ${rec.data}" class="grid grid-cols-3 border-b border-slate-50 pb-1">
+                                    <dt class="text-slate-500 col-span-1" th:text="${entry.key}"></dt>
+                                    <dd class="text-slate-900 font-mono col-span-2 font-medium" th:text="${entry.value}"></dd>
+                                </div>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+                <div th:if="${#lists.isEmpty(result.onlyInExcel)}" class="text-center py-12 text-slate-500 italic border-2 border-dashed border-slate-200 rounded-lg">
+                    ¡Increíble! Todos los registros de Excel están en el CSV.
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Lógica de Pestañas
+        function switchTab(tabName) {
+            // Ocultar todo
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            // Mostrar selección
+            document.getElementById('tab-' + tabName).classList.add('active');
+            document.getElementById('btn-' + tabName).classList.add('active');
+
+            // Limpiar búsqueda al cambiar de pestaña para evitar confusión
+            document.getElementById('searchBox').value = '';
+            filterCards(); 
+        }
+
+        // Lógica de Búsqueda (Aplica solo a la pestaña visible)
+        function filterCards() {
+            const input = document.getElementById('searchBox');
+            const filter = input.value.toUpperCase();
+            
+            // Buscar solo dentro de la pestaña activa
+            const activeTab = document.querySelector('.tab-content.active');
+            const cards = activeTab.getElementsByClassName('search-item');
+
+            for (let i = 0; i < cards.length; i++) {
+                const txtValue = cards[i].textContent || cards[i].innerText;
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    cards[i].style.display = "";
+                } else {
+                    cards[i].style.display = "none";
+                }
+            }
+        }
+    </script>
+</body>
+</html>

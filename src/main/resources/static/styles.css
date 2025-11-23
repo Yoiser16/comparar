@@ -1,0 +1,132 @@
+:root {
+    /* --- PALETA DE COLORES (Tema Claro por defecto) --- */
+    --bg-body: #f4f7fa;
+    --bg-card: #ffffff;
+    --text-main: #2d3748;
+    --text-muted: #718096;
+    --border-color: #e2e8f0;
+    
+    /* Colores de Marca (Se mantienen en ambos temas) */
+    --primary: #9f7aea; /* Morado suave */
+    --primary-dark: #805ad5; /* Morado más fuerte para hover */
+    --primary-glow: rgba(159, 122, 234, 0.2);
+    --accent-success: #48bb78;
+    --accent-warning: #ed8936;
+    
+    /* Sombras */
+    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* --- TEMA OSCURO AUTOMÁTICO --- */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-body: #1a202c; /* El color de fondo oscuro de tu imagen */
+        --bg-card: #2d3748; /* Un gris azulado para las tarjetas */
+        --text-main: #f7fafc;
+        --text-muted: #a0aec0;
+        --border-color: #4a5568;
+        --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+    }
+}
+
+/* --- ESTILOS GENERALES --- */
+body {
+    background-color: var(--bg-body);
+    color: var(--text-main);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 20px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+/* --- TARJETAS Y CONTENEDORES --- */
+.card {
+    background-color: var(--bg-card);
+    border-radius: 12px;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border-color);
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+
+.card-body { padding: 20px; }
+
+/* --- FORMULARIOS PRO (Inputs estilo Drag & Drop) --- */
+.file-input {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    border: 2px dashed var(--border-color);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: rgba(0,0,0,0.02);
+}
+
+.file-input:hover {
+    border-color: var(--primary);
+    background-color: var(--primary-glow);
+}
+
+input[type="file"] { display: none; }
+
+/* --- BOTONES --- */
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px var(--primary-glow);
+    transition: transform 0.2s;
+}
+
+.btn-primary:hover { transform: translateY(-2px); }
+.btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
+
+/* --- MENSAJES PROFESIONALES (ALERTAS) --- */
+.alert-professional {
+    padding: 16px;
+    border-radius: 8px;
+    background-color: var(--bg-card);
+    border-left: 5px solid; /* Borde lateral de color */
+    display: flex;
+    align-items: center;
+    box-shadow: var(--shadow-card);
+    margin-bottom: 20px;
+    animation: slideIn 0.4s ease-out;
+}
+
+.alert-error {
+    border-color: #fc8181; /* Rojo suave */
+    background: rgba(252, 129, 129, 0.1);
+    color: #c53030;
+}
+/* Ajuste de texto de alerta en modo oscuro para legibilidad */
+@media (prefers-color-scheme: dark) {
+    .alert-error { color: #feb2b2; }
+}
+
+/* --- ANIMACIONES --- */
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Estilos adicionales para Result.html --- */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.stat { background: var(--bg-card); padding: 1.5rem; border-radius: 12px; text-align: center; border: 1px solid var(--border-color); }
+.stat .num { font-size: 2rem; font-weight: bold; color: var(--primary); }
+.stat .lbl { font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+.badge { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+.badge-match { background-color: rgba(72, 187, 120, 0.2); color: var(--accent-success); }

@@ -1,0 +1,10 @@
+# Archivos y directorios a ignorar en Docker
+target/
+!target/*.jar
+.mvn/wrapper/maven-wrapper.jar
+.git
+.gitignore
+README.md
+*.md
+.DS_Store
+*.log
