@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso Histórico de Ingresos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Protección contra inspeccionar
+        document.addEventListener('contextmenu', (e) => e.preventDefault());
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'C' || e.key === 'J')) {
+                e.preventDefault();
+            }
+            if (e.key === 'F12') {
+                e.preventDefault();
+            }
+        });
+    </script>
+</head>
+<body class="font-sans text-slate-800 antialiased bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 min-h-screen flex items-center justify-center">
+    
+    <div class="w-full max-w-md">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 p-8 space-y-6">
+            
+            <!-- Botón de regreso -->
+            <div class="flex justify-start">
+                <a href="/" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors inline-flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    <span class="text-sm font-medium">Volver</span>
+                </a>
+            </div>
+            
+            <!-- Encabezado -->
+            <div class="text-center space-y-2">
+                <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-orange-100 mb-2">
+                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-bold text-slate-900">Histórico de Ingresos</h1>
+                <p class="text-sm text-slate-500">Acceso Restringido</p>
+            </div>
+
+            <!-- Mensaje de error -->
+            <div th:if="${error}" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span class="text-sm font-medium">Contraseña incorrecta. Intenta de nuevo.</span>
+            </div>
+
+            <!-- Formulario de login -->
+            <form action="/historico/auth" method="post" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">
+                        <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                        Contraseña
+                    </label>
+                    <div class="relative">
+                        <input type="password" 
+                               name="contraseña" 
+                               id="contraseña"
+                               required 
+                               autocomplete="off"
+                               placeholder="Ingresa la contraseña"
+                               class="w-full px-4 py-3 pr-12 border-2 border-slate-300 rounded-lg focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 font-mono tracking-wider transition-all"
+                               onpaste="return false"
+                               oncontextmenu="return false">
+                        <button type="button" 
+                                id="togglePassword"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
+                                onclick="togglePasswordVisibility()">
+                            <svg id="eyeOpen" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                            <svg id="eyeClosed" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-2">Puedes hacer clic en el ojo para ver la contraseña mientras escribes.</p>
+                </div>
+
+                <button type="submit" 
+                        class="w-full py-3 px-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold rounded-lg shadow-lg transform transition hover:-translate-y-0.5 focus:ring-4 focus:ring-orange-500/30 flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    ACCEDER
+                </button>
+            </form>
+
+            <!-- Footer -->
+            <div class="text-center text-xs text-slate-500 space-y-2">
+                <p>Acceso protegido por contraseña</p>
+                <p>No compartas tu contraseña con nadie</p>
+            </div>
+        </div>
+
+        <!-- Advertencia de seguridad -->
+        <div class="mt-6 bg-slate-800 border border-slate-700 rounded-lg p-4 text-slate-300 text-xs space-y-2">
+            <div class="flex items-start gap-2">
+                <svg class="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                </svg>
+                <p><strong>Información Confidencial:</strong> Este módulo contiene información sensible. Asegúrate de usar una contraseña fuerte y no compartirla.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Función para mostrar/ocultar contraseña
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('contraseña');
+            const eyeOpen = document.getElementById('eyeOpen');
+            const eyeClosed = document.getElementById('eyeClosed');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeOpen.classList.remove('hidden');
+                eyeClosed.classList.add('hidden');
+            } else {
+                passwordInput.type = 'password';
+                eyeOpen.classList.add('hidden');
+                eyeClosed.classList.remove('hidden');
+            }
+        }
+
+        // Protección adicional contra inspeccionar
+        if (window.devtools && window.devtools.open) {
+            window.devtools.open = false;
+        }
+
+        // Detectar si se abre DevTools
+        const checkDevTools = setInterval(() => {
+            const widthThreshold = window.outerWidth - window.innerWidth > 160;
+            const heightThreshold = window.outerHeight - window.innerHeight > 160;
+            
+            if ((widthThreshold || heightThreshold) && !window.isDevToolsOpen) {
+                window.isDevToolsOpen = true;
+                console.warn("DevTools detectadas");
+            }
+        }, 500);
+    </script>
+</body>
+</html>

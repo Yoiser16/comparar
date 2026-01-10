@@ -33,6 +33,12 @@
             <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-500 via-blue-400 to-accent"></div>
             
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                <div class="flex justify-end mb-4">
+                    <a href="/historico" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition-colors shadow-sm flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Histórico de Ingresos
+                    </a>
+                </div>
                 <div class="text-center mb-10">
                     <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-4">
                         AUDITORÍA Y CRUCE DE REGISTROS
@@ -42,41 +48,52 @@
                     </p>
                 </div>
 
-                <div class="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 p-1 md:p-8 max-w-4xl mx-auto relative top-4">
+                <div class="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 p-4 md:p-8 max-w-4xl mx-auto relative top-4">
                     
-                    <div th:if="${error}" class="mb-6 mx-4 bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded flex items-center gap-3">
+                    <div th:if="${error}" class="mb-4 md:mb-6 bg-red-900/50 border border-red-500 text-red-200 px-3 py-2 md:px-4 md:py-3 rounded flex items-center gap-2 md:gap-3">
                         <svg class="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         <span class="font-mono text-sm" th:text="${error}">Error message</span>
                     </div>
 
-                    <form action="/compare" method="post" enctype="multipart/form-data" id="uploadForm" class="grid grid-cols-1 md:grid-cols-11 gap-6 items-center p-4">
+                    <form action="/compare" method="post" enctype="multipart/form-data" id="uploadForm" class="grid grid-cols-1 md:grid-cols-11 gap-4 md:gap-6 items-center">
+                        
+                        <div class="md:col-span-11 mb-2">
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                Nombre / Fecha del Informe *
+                            </label>
+                            <input type="text" name="periodoComparacion" id="periodoComparacion" required
+                                placeholder="Ej: Semana 1 - Enero 2026" 
+                                class="w-full px-4 py-3 bg-slate-700 border-2 border-slate-600 text-white rounded-lg focus:border-accent focus:outline-none placeholder-slate-500">
+                            <p class="text-xs text-slate-500 mt-1">Este nombre te permitirá filtrar los resultados en el histórico</p>
+                        </div>
                         
                         <div class="md:col-span-5 group">
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Fuente Primaria (CSV)</label>
-                            <input type="file" name="csvFile" id="csvFile" accept=".csv" class="hidden" onchange="updateUI(this, 'csvBox', 'csvIcon')">
-                            <label for="csvFile" id="csvBox" class="flex flex-col items-center justify-center h-32 border-2 border-dashed border-slate-600 rounded-xl cursor-pointer hover:border-brand-500 hover:bg-slate-700/50 transition-all">
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Fuente Primaria (CSV) - Múltiples Archivos</label>
+                            <input type="file" name="csvFiles" id="csvFile" accept=".csv" multiple class="hidden" onchange="updateUI(this, 'csvBox', 'csvIcon')">
+                            <label for="csvFile" id="csvBox" class="flex flex-col items-center justify-center h-28 md:h-32 border-2 border-dashed border-slate-600 rounded-xl cursor-pointer hover:border-brand-500 hover:bg-slate-700/50 transition-all">
                                 <svg id="csvIcon" class="w-8 h-8 text-slate-500 mb-2 group-hover:text-brand-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                 <span class="text-sm font-mono text-slate-300 file-name">Seleccionar .CSV</span>
                             </label>
                         </div>
 
-                        <div class="md:col-span-1 flex justify-center">
-                            <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-400">
+                        <div class="md:col-span-1 flex justify-center my-1 md:my-0">
+                            <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-400 rotate-90 md:rotate-0">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                             </div>
                         </div>
 
                         <div class="md:col-span-5 group">
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Fuente Secundaria (Excel)</label>
-                            <input type="file" name="excelFile" id="excelFile" accept=".xlsx,.xls" class="hidden" onchange="updateUI(this, 'excelBox', 'excelIcon')">
-                            <label for="excelFile" id="excelBox" class="flex flex-col items-center justify-center h-32 border-2 border-dashed border-slate-600 rounded-xl cursor-pointer hover:border-emerald-500 hover:bg-slate-700/50 transition-all">
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Fuente Secundaria (Excel) - Múltiples Archivos</label>
+                            <input type="file" name="excelFiles" id="excelFile" accept=".xlsx,.xls" multiple class="hidden" onchange="updateUI(this, 'excelBox', 'excelIcon')">
+                            <label for="excelFile" id="excelBox" class="flex flex-col items-center justify-center h-28 md:h-32 border-2 border-dashed border-slate-600 rounded-xl cursor-pointer hover:border-emerald-500 hover:bg-slate-700/50 transition-all">
                                 <svg id="excelIcon" class="w-8 h-8 text-slate-500 mb-2 group-hover:text-emerald-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 5h14a2 2 0 002-2V5a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
                                 <span class="text-sm font-mono text-slate-300 file-name">Seleccionar .XLSX</span>
                             </label>
                         </div>
 
-                        <div class="md:col-span-11 mt-2">
-                            <button type="submit" id="submitBtn" class="w-full py-4 px-6 bg-accent hover:bg-orange-600 text-white font-bold rounded-lg shadow-lg transform transition hover:-translate-y-0.5 focus:ring-4 focus:ring-orange-500/30 flex items-center justify-center gap-2">
+                        <div class="md:col-span-11 mt-2 md:mt-4">
+                            <button type="submit" id="submitBtn" class="w-full py-3 md:py-4 px-4 md:px-6 bg-accent hover:bg-orange-600 text-white text-sm md:text-base font-bold rounded-lg shadow-lg transform transition hover:-translate-y-0.5 focus:ring-4 focus:ring-orange-500/30 flex items-center justify-center gap-2">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
                                 EJECUTAR ANÁLISIS COMPARATIVO
                             </button>
@@ -86,25 +103,25 @@
             </div>
         </div>
 
-        <div class="flex-grow flex flex-col justify-center py-12 bg-gray-50">
+        <div class="flex-grow flex flex-col justify-center py-8 md:py-12 bg-gray-50">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-10">
                     <div>
                         <h3 class="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
                             <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-mono rounded">CSV</span>
-                            Archivo de Origen
+                            Archivos de Origen
                         </h3>
                         <p class="text-slate-600 text-sm leading-relaxed">
-                            El sistema acepta archivos CSV. Se recomienda codificación UTF-8. El motor buscará columnas ID para indexar.
+                            El sistema acepta múltiples archivos CSV. Se combinarán automáticamente para el análisis. Codificación UTF-8 recomendada.
                         </p>
                     </div>
                     <div>
                         <h3 class="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
                             <span class="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-mono rounded">XLSX</span>
-                            Archivo de Cruce
+                            Archivos de Cruce
                         </h3>
                         <p class="text-slate-600 text-sm leading-relaxed">
-                            Soporta Excel (.xlsx/.xls). El sistema aplanará la primera hoja del libro para realizar la búsqueda.
+                            Soporta múltiples archivos Excel (.xlsx/.xls). Se procesarán las hojas LIVEJOY, SALSA y Olive de cada archivo.
                         </p>
                     </div>
                     <div>
@@ -120,8 +137,8 @@
             </div>
         </div>
     </div>
-    <footer class="bg-slate-900 border-t-4 border-accent/20 py-6">
-        <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-center md:justify-between gap-4">
+    <footer class="bg-slate-900 border-t-4 border-accent/20 py-4 md:py-6">
+        <div class="max-w-6xl mx-auto px-3 md:px-4 flex flex-col md:flex-row items-center justify-center md:justify-between gap-3 md:gap-4">
             
             <div class="flex items-center gap-4">
                 <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">
@@ -145,8 +162,12 @@
             const icon = document.getElementById(iconId);
             const span = box.querySelector('.file-name');
             
-            if (input.files && input.files[0]) {
-                span.textContent = input.files[0].name;
+            if (input.files && input.files.length > 0) {
+                if (input.files.length === 1) {
+                    span.textContent = input.files[0].name;
+                } else {
+                    span.textContent = input.files.length + ' archivos seleccionados';
+                }
                 span.classList.add('text-white', 'font-bold');
                 span.classList.remove('text-slate-300');
                 box.classList.remove('border-dashed', 'border-slate-600');

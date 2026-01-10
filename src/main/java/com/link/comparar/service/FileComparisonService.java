@@ -40,8 +40,25 @@ public class FileComparisonService {
         char delimiter = detectDelimiter(content);
         logger.info("CSV delimitador detectado: '{}'", delimiter == '\t' ? "TAB" : String.valueOf(delimiter));
 
-        try (CSVParser csvParser = new CSVParser(
-                new InputStreamReader(new ByteArrayInputStream(content), StandardCharsets.UTF_8),
+        // Detectar si es un archivo OLIVE (tiene formato especial con resumen al
+        // inicio)
+        int headerRowIndex = detectHeaderRowForOlive(content, delimiter);
+        logger.info("Fila de encabezado detectada en índice: {}", headerRowIndex);
+
+        // Si es un archivo OLIVE, saltar las filas de resumen
+        BufferedReader reader = new BufferedReader(
+                new InputStreamReader(new ByteArrayInputStream(content), StandardCharsets.UTF_8));
+
+        // Saltar líneas hasta llegar al encabezado real
+        for (int i = 0; i < headerRowIndex - 1; i++) {
+            try {
+                reader.readLine();
+            } catch (IOException e) {
+                logger.warn("Error al saltar líneas de resumen: {}", e.getMessage());
+            }
+        }
+
+        try (CSVParser csvParser = new CSVParser(reader,
                 CSVFormat.DEFAULT.builder()
                         .setDelimiter(delimiter)
                         .setHeader()
@@ -55,6 +72,16 @@ public class FileComparisonService {
 
             Map<String, Integer> headerMap = csvParser.getHeaderMap();
             logger.info("CSV Headers detectados: {}", headerMap.keySet());
+
+            // Detectar si es un archivo OLIVE basándose en los headers
+            boolean isOliveFile = headerMap.keySet().stream()
+                    .anyMatch(h -> h.toLowerCase().contains("redeemable") ||
+                            h.toLowerCase().contains("streamers income") ||
+                            h.toLowerCase().contains("agency payment"));
+
+            if (isOliveFile) {
+                logger.info("Detectado archivo OLIVE - Solo se mostrarán campos específicos de OLIVE");
+            }
 
             for (CSVRecord record : csvParser) {
                 Map<String, String> data = new LinkedHashMap<>();
@@ -76,7 +103,17 @@ public class FileComparisonService {
                     if (value != null && !value.trim().isEmpty()) {
                         String displayName = getDisplayName(header);
                         if (displayName != null) {
-                            data.put(displayName, value.trim());
+                            // Si es archivo OLIVE, solo mostrar los 3 campos solicitados
+                            if (isOliveFile) {
+                                if (displayName.equals("Puntos Canjeables") ||
+                                        displayName.equals("Ingresos Streamer") ||
+                                        displayName.equals("Pago Agencia")) {
+                                    data.put(displayName, value.trim());
+                                }
+                            } else {
+                                // Para otros archivos CSV, mostrar todos los campos
+                                data.put(displayName, value.trim());
+                            }
                         }
                     }
                 }
@@ -176,7 +213,20 @@ public class FileComparisonService {
                         String value = getCellValueAsString(cell).trim();
                         if (value.isEmpty())
                             continue;
-                        String displayName = getDisplayName(headers.get(j));
+                        // Mostrar "Bonus Top 100" específicamente para la hoja SALSA
+                        String headerName = headers.get(j);
+                        String normalizedHeader = headerName == null ? "" : headerName.toLowerCase(Locale.ROOT).trim();
+                        boolean salsaBonusTop = normalizedSheetName.equals("salsa") &&
+                                (normalizedHeader.contains("bonus top 100") ||
+                                        (normalizedHeader.contains("bonus") && normalizedHeader.contains("top")
+                                                && normalizedHeader.contains("100")));
+
+                        if (salsaBonusTop) {
+                            data.put("Bonus Top 100", value);
+                            continue;
+                        }
+
+                        String displayName = getDisplayName(headerName);
                         if (displayName != null) {
                             data.put(displayName, value);
                         }
@@ -219,7 +269,136 @@ public class FileComparisonService {
     }
 
     /**
-     * Compara los registros de dos archivos
+     * Compara múltiples archivos CSV y Excel
+     */
+    public ComparisonResult compareFiles(MultipartFile[] csvFiles, MultipartFile[] excelFiles) throws IOException {
+        // Combinar todos los registros CSV (fusionando datos de IDs duplicados)
+        Map<String, FileRecord> csvRecords = new HashMap<>();
+        for (MultipartFile csvFile : csvFiles) {
+            if (csvFile != null && !csvFile.isEmpty()) {
+                logger.info("Procesando archivo CSV: {}", csvFile.getOriginalFilename());
+                Map<String, FileRecord> records = extractRecordsFromCsv(csvFile);
+
+                // Fusionar registros en lugar de sobrescribir
+                for (Map.Entry<String, FileRecord> entry : records.entrySet()) {
+                    String id = entry.getKey();
+                    FileRecord nuevoRecord = entry.getValue();
+
+                    if (csvRecords.containsKey(id)) {
+                        // Ya existe, fusionar datos
+                        FileRecord existente = csvRecords.get(id);
+                        Map<String, String> datosFusionados = new LinkedHashMap<>(existente.getData());
+
+                        // Agregar/sobrescribir con nuevos datos no vacíos
+                        nuevoRecord.getData().forEach((key, value) -> {
+                            if (value != null && !value.trim().isEmpty()) {
+                                datosFusionados.put(key, value);
+                            }
+                        });
+
+                        csvRecords.put(id, new FileRecord(id, datosFusionados, "CSV"));
+                    } else {
+                        csvRecords.put(id, nuevoRecord);
+                    }
+                }
+            }
+        }
+
+        // Combinar todos los registros Excel (fusionando datos de IDs duplicados)
+        Map<String, FileRecord> excelRecords = new HashMap<>();
+        for (MultipartFile excelFile : excelFiles) {
+            if (excelFile != null && !excelFile.isEmpty()) {
+                logger.info("Procesando archivo Excel: {}", excelFile.getOriginalFilename());
+                Map<String, FileRecord> records = extractRecordsFromExcel(excelFile);
+
+                // Fusionar registros en lugar de sobrescribir
+                for (Map.Entry<String, FileRecord> entry : records.entrySet()) {
+                    String id = entry.getKey();
+                    FileRecord nuevoRecord = entry.getValue();
+
+                    if (excelRecords.containsKey(id)) {
+                        // Ya existe, fusionar datos
+                        FileRecord existente = excelRecords.get(id);
+                        Map<String, String> datosFusionados = new LinkedHashMap<>(existente.getData());
+
+                        // Agregar/sobrescribir con nuevos datos no vacíos
+                        nuevoRecord.getData().forEach((key, value) -> {
+                            if (value != null && !value.trim().isEmpty()) {
+                                datosFusionados.put(key, value);
+                            }
+                        });
+
+                        excelRecords.put(id, new FileRecord(id, datosFusionados, "Excel"));
+                    } else {
+                        excelRecords.put(id, nuevoRecord);
+                    }
+                }
+            }
+        }
+
+        Set<String> csvIds = csvRecords.keySet();
+        Set<String> excelIds = excelRecords.keySet();
+
+        logger.info("=== COMPARACIÓN MÚLTIPLE ===");
+        logger.info("Total archivos CSV procesados: {}", csvFiles.length);
+        logger.info("Total archivos Excel procesados: {}", excelFiles.length);
+        logger.info("Total IDs únicos en CSV: {}", csvIds.size());
+        logger.info("Total IDs únicos en Excel: {}", excelIds.size());
+
+        // IDs que coinciden en ambos archivos
+        Set<String> matchingIds = new HashSet<>(csvIds);
+        matchingIds.retainAll(excelIds);
+        logger.info("IDs coincidentes: {}", matchingIds.size());
+
+        // IDs solo en CSV
+        Set<String> onlyInCsv = new HashSet<>(csvIds);
+        onlyInCsv.removeAll(excelIds);
+        logger.info("IDs solo en CSV: {}", onlyInCsv.size());
+
+        // IDs solo en Excel
+        Set<String> onlyInExcel = new HashSet<>(excelIds);
+        onlyInExcel.removeAll(csvIds);
+        logger.info("IDs solo en Excel: {}", onlyInExcel.size());
+
+        // Convertir a listas ordenadas
+        List<String> matchingList = new ArrayList<>(matchingIds);
+        List<String> onlyInCsvList = new ArrayList<>(onlyInCsv);
+        List<String> onlyInExcelList = new ArrayList<>(onlyInExcel);
+
+        Collections.sort(matchingList);
+        Collections.sort(onlyInCsvList);
+        Collections.sort(onlyInExcelList);
+
+        // Crear lista de registros coincidentes con todos los datos
+        List<FileRecord> matchingRecords = new ArrayList<>();
+        for (String id : matchingList) {
+            FileRecord csvRecord = csvRecords.get(id);
+            FileRecord excelRecord = excelRecords.get(id);
+
+            // Combinar datos de ambos archivos
+            Map<String, String> combinedData = new LinkedHashMap<>();
+
+            if (csvRecord != null && csvRecord.getData() != null) {
+                csvRecord.getData().forEach((key, value) -> combinedData.put("CSV_" + key, value));
+            }
+
+            if (excelRecord != null && excelRecord.getData() != null) {
+                excelRecord.getData().forEach((key, value) -> combinedData.put("Excel_" + key, value));
+            }
+
+            FileRecord matchingRecord = new FileRecord(id, combinedData, "Coincidente");
+            matchingRecords.add(matchingRecord);
+        }
+
+        ComparisonResult result = new ComparisonResult(matchingList, onlyInCsvList, onlyInExcelList);
+        result.setMatchingRecords(matchingRecords);
+
+        return result;
+    }
+
+    /**
+     * Compara los registros de dos archivos (método original mantenido para
+     * compatibilidad)
      */
     public ComparisonResult compareFiles(MultipartFile csvFile, MultipartFile excelFile) throws IOException {
         Map<String, FileRecord> csvRecords = extractRecordsFromCsv(csvFile);
@@ -336,7 +515,7 @@ public class FileComparisonService {
      * formato
      * Extrae solo los números del inicio del string
      */
-    private String cleanId(String id) {
+    public String cleanId(String id) {
         if (id == null || id.trim().isEmpty()) {
             return "";
         }
@@ -362,6 +541,28 @@ public class FileComparisonService {
         }
 
         return numericId.toString();
+    }
+
+    /**
+     * Detecta en qué fila está el encabezado real para archivos OLIVE
+     * Los archivos OLIVE tienen filas de resumen al inicio antes de los datos
+     * tabulares
+     */
+    private int detectHeaderRowForOlive(byte[] content, char delimiter) throws IOException {
+        try (BufferedReader br = new BufferedReader(
+                new InputStreamReader(new ByteArrayInputStream(content), StandardCharsets.UTF_8))) {
+            String line;
+            int lineNumber = 0;
+            while ((line = br.readLine()) != null) {
+                lineNumber++;
+                // La fila de encabezado típicamente contiene "User ID"
+                if (line.toLowerCase().contains("user id") || line.toLowerCase().contains("userid")) {
+                    logger.info("Detectada fila de encabezado OLIVE en línea {}", lineNumber);
+                    return lineNumber;
+                }
+            }
+        }
+        return 0; // Si no se detecta formato OLIVE, asumir formato normal
     }
 
     /**
@@ -462,19 +663,26 @@ public class FileComparisonService {
         if (fieldName == null)
             return null;
 
+        // Evitar fallar con encabezados vacíos o en blanco
+        if (fieldName.trim().isEmpty()) {
+            return null;
+        }
+
         String normalized = fieldName.toLowerCase().trim();
 
         // Campos que NO deben mostrarse (demasiado técnicos o irrelevantes)
         if (normalized.equals("id") ||
-                normalized.contains("coins") ||
-                normalized.contains("payout") ||
                 normalized.contains("conversion") ||
                 normalized.contains("malicious") ||
                 normalized.contains("penalty") ||
-                normalized.contains("balance") ||
                 normalized.contains("bet") ||
                 normalized.contains("turnover") ||
                 normalized.contains("remaining") ||
+                // Ocultar campos con $ que no son útiles
+                normalized.contains("coin $") ||
+                normalized.contains("match $") ||
+                // Ocultar "coins" simple (mantener solo "total coins")
+                normalized.equals("coins") ||
                 // Ocultar métricas internas que el usuario no necesita ver
                 normalized.equals("matchs") ||
                 normalized.equals("matches") ||
@@ -485,16 +693,76 @@ public class FileComparisonService {
             return null;
         }
 
-        // Mapeo de nombres técnicos a nombres amigables
+        // Mapeo de nombres técnicos a nombres amigables en español
         Map<String, String> displayNames = new HashMap<>();
-        displayNames.put("full name", "Nombre");
-        displayNames.put("week", "Semana");
+
+        // Nombres y usuarios
+        displayNames.put("full name", "Nombre Completo");
+        displayNames.put("name", "Nombre");
         displayNames.put("user", "Usuario");
+        displayNames.put("username", "Usuario");
+        displayNames.put("nombre completo", "Nombre Completo");
+        displayNames.put("nombre", "Nombre");
+
+        // Fechas y tiempo
+        displayNames.put("week", "Semana");
         displayNames.put("fecha", "Fecha");
-        displayNames.put("nombre completo", "Nombre");
+        displayNames.put("feacha", "Fecha"); // Corrección de error común en Excel
+        displayNames.put("date", "Fecha");
+        displayNames.put("time", "Hora");
+        displayNames.put("hora", "Hora");
+
+        // Contacto
         displayNames.put("numero de whatsapp", "WhatsApp");
+        displayNames.put("numero de whatssap", "WhatsApp"); // Corrección de error común
+        displayNames.put("whatsapp", "WhatsApp");
+        displayNames.put("whatssap", "WhatsApp"); // Corrección de error común
+        displayNames.put("phone", "Teléfono");
+        displayNames.put("telefono", "Teléfono");
+        displayNames.put("email", "Correo");
+        displayNames.put("correo", "Correo");
+
+        // Ubicación
         displayNames.put("pais", "País");
+        displayNames.put("country", "País");
+        displayNames.put("ciudad", "Ciudad");
+        displayNames.put("city", "Ciudad");
+
+        // Campos relacionados con monedas/balance
+        displayNames.put("total coins", "Total de Monedas");
+        displayNames.put("coins", "Monedas");
+        displayNames.put("balance", "Balance");
+        displayNames.put("total balance", "Balance Total");
+        displayNames.put("saldo", "Saldo");
+        displayNames.put("total", "Total");
+        displayNames.put("amount", "Monto");
+        displayNames.put("monto", "Monto");
+
+        // Campos específicos de OLIVE
+        displayNames.put("redeemable points", "Puntos Canjeables");
+        displayNames.put("redeemable level", "Nivel Canjeable");
+        displayNames.put("streamers income", "Ingresos Streamer");
+        displayNames.put("agency payment", "Pago Agencia");
+        displayNames.put("agency commission", "Comisión Agencia");
+        displayNames.put("total revenue", "Ingresos Totales");
+        displayNames.put("agency paym", "Pago Agencia"); // Versión abreviada por si está truncado
+
+        // Bonos y recompensas
+        displayNames.put("agency bonus $", "Bono de Agencia $");
+        displayNames.put("agency bonus", "Bono de Agencia");
+        displayNames.put("event reward $", "Recompensa de Evento $");
+        displayNames.put("event reward", "Recompensa de Evento");
+        displayNames.put("bonus top 100", "Bonus Top 100");
+
+        // Estados y otros
         displayNames.put("ok", "Estado");
+        displayNames.put("status", "Estado");
+        displayNames.put("estado", "Estado");
+        displayNames.put("sheet", "Hoja");
+        displayNames.put("idioma", "Idioma");
+        displayNames.put("language", "Idioma");
+        displayNames.put("salsa o café", "Tipo");
+        displayNames.put("salsa o cafe", "Tipo");
 
         // Buscar coincidencia exacta
         String display = displayNames.get(normalized);

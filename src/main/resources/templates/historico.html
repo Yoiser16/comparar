@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Histórico de Ingresos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <script>
+        // Dark mode initialization - debe correr antes del render
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark')
+        } else {
+            document.documentElement.classList.remove('dark')
+        }
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-slate-800 dark:text-slate-200 min-h-screen transition-colors">
+
+    <div class="bg-white dark:bg-gray-800 border-b border-slate-200 dark:border-gray-700 shadow-sm sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center py-4 gap-4">
+                <div class="flex items-center gap-4">
+                    <a href="javascript:history.back()" class="p-2 rounded-lg bg-slate-100 dark:bg-gray-700 hover:bg-slate-200 dark:hover:bg-gray-600 text-slate-600 dark:text-slate-300 transition-colors" title="Volver a resultados">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    </a>
+                    <a href="/" class="p-2 rounded-lg bg-slate-100 dark:bg-gray-700 hover:bg-slate-200 dark:hover:bg-gray-600 text-slate-600 dark:text-slate-300 transition-colors" title="Ir a inicio">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    </a>
+                    <h1 class="text-xl md:text-2xl font-bold text-slate-900 dark:text-white uppercase tracking-tight">Histórico de Ingresos</h1>
+                </div>
+                
+                <div class="flex gap-2 text-xs items-center">
+                    <!-- Dark mode toggle -->
+                    <button id="darkModeToggle" class="p-2 rounded-lg bg-slate-100 dark:bg-gray-700 hover:bg-slate-200 dark:hover:bg-gray-600 text-slate-600 dark:text-yellow-400 transition-colors">
+                        <svg id="sunIcon" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <svg id="moonIcon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                    </button>
+                    <div class="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded border border-green-200 dark:border-green-700 font-bold">
+                        TOTAL: <span th:text="${#lists.size(registros)}">0</span>
+                    </div>
+                    <a th:href="${periodoSeleccionado != null ? '/historico/descargar/excel?periodo=' + periodoSeleccionado : '/historico/descargar/excel'}" 
+                       class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded transition-colors shadow-sm flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        Descargar Excel
+                    </a>
+                    <a th:href="${periodoSeleccionado != null ? '/historico/descargar/csv?periodo=' + periodoSeleccionado : '/historico/descargar/csv'}" 
+                       class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition-colors shadow-sm flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        Descargar CSV
+                    </a>
+                        <button type="button"
+                            th:if="${#lists.size(registros) > 0}"
+                            th:data-periodo="${periodoSeleccionado}"
+                            onclick="openDeleteModal(this)"
+                            th:text="${periodoSeleccionado != null ? 'Eliminar Período' : 'Limpiar Todo'}"
+                            class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded transition-colors shadow-sm flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                    <a href="/historico/logout" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded transition-colors shadow-sm flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                        Cerrar Sesión
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 md:py-8">
+        
+        <!-- Mensaje de confirmación -->
+        <div th:if="${mensaje}" class="mb-4 bg-green-100 dark:bg-green-900 border border-green-400 dark:border-green-700 text-green-800 dark:text-green-200 px-4 py-3 rounded-lg flex items-center gap-3">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span class="font-medium" th:text="${mensaje}">Mensaje</span>
+        </div>
+        
+        <!-- Mensaje de error -->
+        <div th:if="${error}" class="mb-4 bg-red-100 border border-red-400 text-red-800 px-4 py-3 rounded-lg flex items-center gap-3">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span class="font-medium" th:text="${error}">Error</span>
+        </div>
+        
+        <!-- Filtro por Periodo -->
+        <div class="mb-4">
+            <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+                <div class="flex items-center gap-4 flex-wrap">
+                    <label class="text-sm font-bold text-slate-700">Filtrar por Periodo:</label>
+                    <div class="flex gap-2 flex-wrap">
+                        <a href="/historico" 
+                           th:classappend="${periodoSeleccionado == null ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}" 
+                           class="px-4 py-2 rounded-lg font-bold transition-colors text-sm">
+                            Todos
+                        </a>
+                        <a th:each="periodo : ${periodosDisponibles}" 
+                           th:href="@{/historico/periodo(p=${periodo})}"
+                           th:text="${periodo}"
+                           th:classappend="${periodoSeleccionado == periodo ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}" 
+                           class="px-4 py-2 rounded-lg font-bold transition-colors text-sm">
+                            Periodo
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Buscador -->
+        <div class="mb-6">
+            <form action="/historico/buscar" method="get" class="flex gap-2">
+                <div class="flex-1 relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                    <input type="text" name="query" th:value="${query}" class="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm shadow-sm" placeholder="Buscar por ID o nombre...">
+                </div>
+                <button type="submit" class="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition-colors shadow-sm">
+                    Buscar
+                </button>
+                <a href="/historico" class="px-6 py-3 bg-slate-600 hover:bg-slate-700 text-white font-bold rounded-lg transition-colors shadow-sm">
+                    Ver Todos
+                </a>
+            </form>
+        </div>
+
+        <!-- Tabla de registros -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full border-collapse">
+                    <thead class="bg-slate-50 dark:bg-gray-700">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">ID</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Nombre Completo</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Periodo</th>
+                            <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Monedas</th>
+                            <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Total Monedas</th>
+                            <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Bono Agencia</th>
+                            <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Bonus Top 100</th>
+                            <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Loyalty Credits</th>
+                            <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Recompensa</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">País</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Sheet</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Fecha Registro</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-gray-800">
+                        <tr th:if="${#lists.isEmpty(registros)}">
+                            <td colspan="12" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400 italic border border-slate-300 dark:border-gray-600">
+                                <svg class="w-12 h-12 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                                No hay registros en el histórico
+                            </td>
+                        </tr>
+                        <tr th:each="registro : ${registros}" class="hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors">
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-mono font-bold text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-gray-600" th:text="${registro.identificacion}">ID</td>
+                            <td class="px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium border border-slate-300 dark:border-gray-600" th:text="${registro.nombreCompleto}">Nombre</td>
+                            <td class="px-4 py-3 text-sm text-purple-700 dark:text-purple-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${registro.periodoComparacion != null ? registro.periodoComparacion : '-'}">Periodo</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-orange-600 dark:text-orange-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${registro.monedas != null ? registro.monedas : '-'}">0</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-green-700 dark:text-green-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${registro.totalMonedas != null ? registro.totalMonedas : '-'}">0</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-blue-700 dark:text-blue-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${registro.bonoAgencia != null ? registro.bonoAgencia : '-'}">$0</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-indigo-700 dark:text-indigo-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${registro.bonusTop100 != null ? registro.bonusTop100 : '-'}">0</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-teal-700 dark:text-teal-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${registro.loyaltyCredits != null ? registro.loyaltyCredits : '-'}">-</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${registro.recompensaEvento != null ? registro.recompensaEvento : '-'}">$0</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.pais != null ? registro.pais : '-'}">-</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.sheet != null ? registro.sheet : '-'}">-</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-xs text-slate-600 dark:text-slate-400 font-mono border border-slate-300 dark:border-gray-600" th:text="${#temporals.format(registro.fechaRegistro, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal de confirmación -->
+    <div id="deleteModal" class="fixed inset-0 bg-black/40 dark:bg-black/60 hidden items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-4">
+            <div class="flex items-start gap-3">
+                <div class="p-2 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white" id="deleteModalTitle">Confirmar eliminación</h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-400 mt-1" id="deleteModalText">¿Deseas continuar?</p>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-4">
+                <button onclick="closeDeleteModal()" class="px-3 py-2 bg-slate-100 dark:bg-gray-700 hover:bg-slate-200 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 rounded-lg font-bold text-sm">Cancelar</button>
+                <button id="deleteConfirmBtn" class="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-sm">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let deleteTargetPeriodo = null;
+        let deleteModeAll = false;
+
+        function openDeleteModal(button) {
+            const periodo = button.getAttribute('data-periodo');
+            deleteTargetPeriodo = periodo;
+            deleteModeAll = (periodo === null || periodo === '' || periodo === 'null');
+
+            const title = document.getElementById('deleteModalTitle');
+            const text = document.getElementById('deleteModalText');
+            const confirmBtn = document.getElementById('deleteConfirmBtn');
+
+            if (deleteModeAll) {
+                title.textContent = 'Limpiar histórico';
+                text.textContent = '¿Estás seguro de eliminar TODOS los registros y períodos? Esta acción no se puede deshacer.';
+                confirmBtn.textContent = 'Limpiar Todo';
+            } else {
+                title.textContent = 'Eliminar período';
+                text.textContent = `¿Estás seguro de eliminar TODOS los registros del período "${periodo}"? Esta acción no se puede deshacer.`;
+                confirmBtn.textContent = 'Eliminar Período';
+            }
+
+            confirmBtn.onclick = performDelete;
+            const modal = document.getElementById('deleteModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeDeleteModal() {
+            const modal = document.getElementById('deleteModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function performDelete() {
+            if (deleteModeAll) {
+                fetch('/historico/limpiar-todo', { method: 'DELETE' })
+                    .then(r => { if (r.ok) { closeDeleteModal(); window.location.href = '/historico'; } })
+                    .catch(() => { closeDeleteModal(); });
+            } else {
+                fetch('/historico/eliminar-periodo', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ periodo: deleteTargetPeriodo })
+                })
+                    .then(r => { if (r.ok) { closeDeleteModal(); window.location.href = '/historico'; } })
+                    .catch(() => { closeDeleteModal(); });
+            }
+        }
+
+        // Dark mode toggle functionality
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        darkModeToggle.addEventListener('click', () => {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.theme = 'light';
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.theme = 'dark';
+            }
+        });
+    </script>
+
+</body>
+</html>

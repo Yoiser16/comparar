@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparar con Histórico</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        slate: { 850: '#1e293b', 900: '#0f172a' },
+                        accent: '#f97316',
+                        brand: '#3b82f6',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="font-sans text-slate-800 antialiased bg-gray-50">
+
+    <div class="min-h-screen flex flex-col relative">
+        
+        <div class="bg-slate-900 text-white pt-12 pb-24 relative overflow-hidden shadow-xl z-10">
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-purple-500 via-purple-400 to-accent"></div>
+            
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                <div class="flex justify-between items-center mb-6">
+                    <a href="/" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg transition-colors flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                        Volver
+                    </a>
+                </div>
+                
+                <div class="text-center mb-10">
+                    <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-4">
+                        COMPARAR CON HISTÓRICO DE INGRESOS
+                    </h1>
+                    <p class="text-slate-400 max-w-2xl mx-auto text-lg font-light">
+                        Sube tus archivos CSV o Excel para compararlos con los registros guardados en el histórico.
+                    </p>
+                </div>
+
+                <div class="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 p-4 md:p-8 max-w-4xl mx-auto relative top-4">
+                    
+                    <div th:if="${error}" class="mb-4 md:mb-6 bg-red-900/50 border border-red-500 text-red-200 px-3 py-2 md:px-4 md:py-3 rounded flex items-center gap-2 md:gap-3">
+                        <svg class="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span class="font-mono text-sm" th:text="${error}">Error message</span>
+                    </div>
+
+                    <form action="/historico/comparar" method="post" enctype="multipart/form-data" id="uploadForm" class="space-y-6">
+                        
+                        <div class="group">
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Archivos a Comparar (CSV o Excel)</label>
+                            <input type="file" name="files" id="files" accept=".csv,.xlsx,.xls" multiple class="hidden" onchange="updateFileList(this)">
+                            <label for="files" id="fileBox" class="flex flex-col items-center justify-center h-32 md:h-40 border-2 border-dashed border-slate-600 rounded-xl cursor-pointer hover:border-purple-500 hover:bg-slate-700/50 transition-all">
+                                <svg id="fileIcon" class="w-10 h-10 text-slate-500 mb-3 group-hover:text-purple-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                <span class="text-sm font-mono text-slate-300 file-name">Seleccionar archivos CSV/XLSX</span>
+                            </label>
+                        </div>
+                        
+                        <div id="fileList" class="hidden">
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Archivos seleccionados:</p>
+                            <div id="fileListContent" class="space-y-1"></div>
+                        </div>
+
+                        <div class="mt-6">
+                            <button type="submit" id="submitBtn" class="w-full py-3 md:py-4 px-4 md:px-6 bg-purple-600 hover:bg-purple-700 text-white text-sm md:text-base font-bold rounded-lg shadow-lg transform transition hover:-translate-y-0.5 focus:ring-4 focus:ring-purple-500/30 flex items-center justify-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                                COMPARAR CON HISTÓRICO
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-grow flex flex-col justify-center py-8 md:py-12 bg-gray-50">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+                <div class="bg-purple-50 border border-purple-200 rounded-lg p-6">
+                    <h3 class="text-lg font-bold text-purple-900 mb-3 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        ¿Cómo funciona?
+                    </h3>
+                    <ul class="text-slate-700 text-sm space-y-2">
+                        <li class="flex items-start gap-2">
+                            <svg class="w-5 h-5 text-purple-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Sube uno o más archivos CSV o Excel con los datos que quieres comparar
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <svg class="w-5 h-5 text-purple-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            El sistema comparará los IDs de tus archivos con los registros del histórico
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <svg class="w-5 h-5 text-purple-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Verás qué IDs coinciden con el histórico y cuáles no
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <svg class="w-5 h-5 text-purple-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Podrás descargar el resultado en PDF, Excel o CSV
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateFileList(input) {
+            const box = document.getElementById('fileBox');
+            const icon = document.getElementById('fileIcon');
+            const span = box.querySelector('.file-name');
+            const fileListDiv = document.getElementById('fileList');
+            const fileListContent = document.getElementById('fileListContent');
+            
+            if (input.files && input.files.length > 0) {
+                if (input.files.length === 1) {
+                    span.textContent = input.files[0].name;
+                } else {
+                    span.textContent = input.files.length + ' archivos seleccionados';
+                }
+                
+                // Mostrar lista de archivos
+                fileListContent.innerHTML = '';
+                for (let i = 0; i < input.files.length; i++) {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'text-xs text-slate-400 font-mono flex items-center gap-2';
+                    fileItem.innerHTML = `
+                        <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        ${input.files[i].name}
+                    `;
+                    fileListContent.appendChild(fileItem);
+                }
+                fileListDiv.classList.remove('hidden');
+                
+                span.classList.add('text-white', 'font-bold');
+                span.classList.remove('text-slate-300');
+                box.classList.remove('border-dashed', 'border-slate-600');
+                box.classList.add('border-solid', 'border-purple-500', 'bg-slate-700');
+                icon.classList.add('text-white');
+                icon.classList.remove('text-slate-500');
+            }
+        }
+
+        document.getElementById('uploadForm').addEventListener('submit', function() {
+            const btn = document.getElementById('submitBtn');
+            btn.innerHTML = '<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> PROCESANDO...';
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+        });
+    </script>
+</body>
+</html>
