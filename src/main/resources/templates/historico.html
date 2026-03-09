@@ -146,8 +146,6 @@
                             <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Monedas</th>
                             <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Total Monedas</th>
                             <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Bono Agencia</th>
-                            <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Bonus Top 100</th>
-                            <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Loyalty Credits</th>
                             <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Recompensa</th>
                             <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">País</th>
                             <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Sheet</th>
@@ -156,7 +154,7 @@
                     </thead>
                     <tbody class="bg-white dark:bg-gray-800">
                         <tr th:if="${#lists.isEmpty(registros)}">
-                            <td colspan="12" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400 italic border border-slate-300 dark:border-gray-600">
+                            <td colspan="10" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400 italic border border-slate-300 dark:border-gray-600">
                                 <svg class="w-12 h-12 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
                                 No hay registros en el histórico
                             </td>
@@ -168,8 +166,6 @@
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-orange-600 dark:text-orange-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${registro.monedas != null ? registro.monedas : '-'}">0</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-green-700 dark:text-green-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${registro.totalMonedas != null ? registro.totalMonedas : '-'}">0</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-blue-700 dark:text-blue-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${registro.bonoAgencia != null ? registro.bonoAgencia : '-'}">$0</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-indigo-700 dark:text-indigo-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${registro.bonusTop100 != null ? registro.bonusTop100 : '-'}">0</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-teal-700 dark:text-teal-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${registro.loyaltyCredits != null ? registro.loyaltyCredits : '-'}">-</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${registro.recompensaEvento != null ? registro.recompensaEvento : '-'}">$0</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.pais != null ? registro.pais : '-'}">-</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.sheet != null ? registro.sheet : '-'}">-</td>

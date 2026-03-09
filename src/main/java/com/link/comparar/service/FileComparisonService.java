@@ -79,8 +79,17 @@ public class FileComparisonService {
                             h.toLowerCase().contains("streamers income") ||
                             h.toLowerCase().contains("agency payment"));
 
+            // Detectar si es un archivo LIVEJOY basándose en los headers
+            boolean isLivejoyFile = headerMap.keySet().stream()
+                    .anyMatch(h -> h.toLowerCase().contains("loyalty") ||
+                            h.toLowerCase().contains("loyalty credits"));
+
             if (isOliveFile) {
                 logger.info("Detectado archivo OLIVE - Solo se mostrarán campos específicos de OLIVE");
+            }
+            
+            if (isLivejoyFile) {
+                logger.info("Detectado archivo LIVEJOY - Se excluirán Loyalty Credits, Bonos de Streamers y Bonus");
             }
 
             for (CSVRecord record : csvParser) {
@@ -111,7 +120,19 @@ public class FileComparisonService {
                                     data.put(displayName, value.trim());
                                 }
                             } else {
-                                // Para otros archivos CSV, mostrar todos los campos
+                                // Excluir Loyalty Credits, Bonos de Streamers y Bonus si es LIVEJOY
+                                if (isLivejoyFile && 
+                                    (displayName.equals("Loyalty Credits") || 
+                                     displayName.equals("Bonos de Streamers") || 
+                                     displayName.equals("Bonus"))) {
+                                    continue;
+                                }
+                                // Para archivos CSV (SALSA), excluir Balance, Monedas y Total
+                                if (displayName.equals("Balance") || 
+                                    displayName.equals("Monedas") || 
+                                    displayName.equals("Total")) {
+                                    continue;
+                                }
                                 data.put(displayName, value.trim());
                             }
                         }
@@ -228,6 +249,20 @@ public class FileComparisonService {
 
                         String displayName = getDisplayName(headerName);
                         if (displayName != null) {
+                            // Excluir Balance, Monedas y Total de la hoja SALSA
+                            if (normalizedSheetName.equals("salsa") && 
+                                (displayName.equals("Balance") || 
+                                 displayName.equals("Monedas") || 
+                                 displayName.equals("Total"))) {
+                                continue;
+                            }
+                            // Excluir Loyalty Credits, Bonos de Streamers y Bonus de la hoja LIVEJOY
+                            if (normalizedSheetName.equals("livejoy") && 
+                                (displayName.equals("Loyalty Credits") || 
+                                 displayName.equals("Bonos de Streamers") || 
+                                 displayName.equals("Bonus"))) {
+                                continue;
+                            }
                             data.put(displayName, value);
                         }
                     }
@@ -753,6 +788,10 @@ public class FileComparisonService {
         displayNames.put("event reward $", "Recompensa de Evento $");
         displayNames.put("event reward", "Recompensa de Evento");
         displayNames.put("bonus top 100", "Bonus Top 100");
+        displayNames.put("loyalty credits", "Loyalty Credits");
+        displayNames.put("bonos de streamers", "Bonos de Streamers");
+        displayNames.put("streamers bonus", "Bonos de Streamers");
+        displayNames.put("bonus", "Bonus");
 
         // Estados y otros
         displayNames.put("ok", "Estado");

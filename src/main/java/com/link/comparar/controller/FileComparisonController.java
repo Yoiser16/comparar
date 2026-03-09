@@ -259,7 +259,24 @@ public class FileComparisonController {
             return ResponseEntity.internalServerError().build();
         }
     }
+    @GetMapping("/download/livejoy-tutora")
+    public ResponseEntity<byte[]> downloadLivejoyTutora(
+            @SessionAttribute("comparisonResult") ComparisonResult result) {
+        try {
+            byte[] data = generateLivejoyTutoraExcel(result.getMatchingRecords());
+            String filename = "livejoy_tutora.xlsx";
+            MediaType mediaType = MediaType
+                    .parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(mediaType);
+            headers.setContentDispositionFormData("attachment", filename);
+            headers.setContentLength(data.length);
+            return ResponseEntity.ok().headers(headers).body(data);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
     @GetMapping("/download/csv-only")
     public ResponseEntity<byte[]> downloadCsvOnly(@SessionAttribute("comparisonResult") ComparisonResult result) {
         try {
@@ -416,6 +433,107 @@ public class FileComparisonController {
         workbook.write(baos);
         workbook.close();
         return baos.toByteArray();
+    }
+
+    private byte[] generateLivejoyTutoraExcel(List<FileRecord> records) throws Exception {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("LIVEJOY");
+
+        // Filtrar solo registros de LIVEJOY
+        List<FileRecord> livejoyRecords = records.stream()
+                .filter(r -> r.getData() != null && 
+                        (r.getData().containsKey("Excel_Sheet") && 
+                         "LIVEJOY".equalsIgnoreCase(r.getData().get("Excel_Sheet"))))
+                .toList();
+
+        if (livejoyRecords.isEmpty()) {
+            Row row = sheet.createRow(0);
+            org.apache.poi.ss.usermodel.Cell cell = row.createCell(0);
+            cell.setCellValue("No hay registros de LIVEJOY para exportar");
+            workbook.write(baos);
+            workbook.close();
+            return baos.toByteArray();
+        }
+
+        // Estilo para encabezados
+        CellStyle headerStyle = workbook.createCellStyle();
+        Font headerFont = workbook.createFont();
+        headerFont.setBold(true);
+        headerStyle.setFont(headerFont);
+        headerStyle.setFillForegroundColor(IndexedColors.LIGHT_BLUE.getIndex());
+        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        // Crear encabezados según la especificación
+        Row headerRow = sheet.createRow(0);
+        String[] headers = {"ID LIVEJOY", "Usuario", "Email", "Puntos", "Monto Dólares", "Nombre Streamers", "Tutora"};
+        for (int i = 0; i < headers.length; i++) {
+            org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        // Crear filas de datos
+        int rowIndex = 1;
+        for (FileRecord record : livejoyRecords) {
+            Row row = sheet.createRow(rowIndex++);
+            
+            // ID LIVEJOY
+            row.createCell(0).setCellValue(record.getId());
+            
+            // Usuario (del CSV)
+            String usuario = getFieldValue(record, "CSV_Nombre", "CSV_Usuario", "CSV_Nombre Completo");
+            row.createCell(1).setCellValue(usuario);
+            
+            // Email (del CSV)
+            String email = getFieldValue(record, "CSV_Correo", "CSV_Email");
+            row.createCell(2).setCellValue(email);
+            
+            // Puntos (del CSV)
+            String puntos = getFieldValue(record, "CSV_Puntos Ganados por Usuaria", "CSV_Puntos");
+            row.createCell(3).setCellValue(puntos);
+            
+            // Monto Dólares / Ingresos (del CSV)
+            String ingresos = getFieldValue(record, "CSV_Ingresos", "CSV_Monto Dólares", "CSV_Monto Dolares");
+            row.createCell(4).setCellValue(ingresos);
+            
+            // Nombre Streamers (del Excel)
+            String nombreCompleto = getFieldValue(record, "Excel_Nombre Completo", "Excel_Nombre");
+            row.createCell(5).setCellValue(nombreCompleto);
+            
+            // Tutora (Calculado: Ingresos * 12% * 40%)
+            double tutoraValue = 0.0;
+            try {
+                if (ingresos != null && !ingresos.trim().isEmpty()) {
+                    double ingresosNum = Double.parseDouble(ingresos.replace(",", ""));
+                    tutoraValue = ingresosNum * 0.12 * 0.40;
+                }
+            } catch (NumberFormatException e) {
+                // Si no se puede parsear, dejar en 0
+            }
+            row.createCell(6).setCellValue(String.format("%.2f", tutoraValue));
+        }
+
+        // Auto-ajustar columnas
+        for (int i = 0; i < headers.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+
+        workbook.write(baos);
+        workbook.close();
+        return baos.toByteArray();
+    }
+
+    private String getFieldValue(FileRecord record, String... fieldNames) {
+        if (record.getData() == null) return "";
+        
+        for (String fieldName : fieldNames) {
+            String value = record.getData().get(fieldName);
+            if (value != null && !value.trim().isEmpty()) {
+                return value;
+            }
+        }
+        return "";
     }
 
     private byte[] generatePdf(List<FileRecord> records, String title) throws Exception {
