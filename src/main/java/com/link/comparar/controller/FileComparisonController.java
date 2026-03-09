@@ -282,9 +282,10 @@ public class FileComparisonController {
 
     @GetMapping("/download/salsa-resumen")
     public ResponseEntity<byte[]> downloadSalsaResumen(
-            @SessionAttribute("comparisonResult") ComparisonResult result) {
+            @SessionAttribute("comparisonResult") ComparisonResult result,
+            @RequestParam(value = "descuento", defaultValue = "60") double porcentajeDescuento) {
         try {
-            byte[] data = generateSalsaResumenExcel(result.getMatchingRecords());
+            byte[] data = generateSalsaResumenExcel(result.getMatchingRecords(), porcentajeDescuento);
             String filename = "salsa_resumen.xlsx";
             MediaType mediaType = MediaType
                     .parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
@@ -546,7 +547,7 @@ public class FileComparisonController {
         return baos.toByteArray();
     }
 
-    private byte[] generateSalsaResumenExcel(List<FileRecord> records) throws Exception {
+    private byte[] generateSalsaResumenExcel(List<FileRecord> records, double porcentajeDescuento) throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("SALSA");
@@ -573,14 +574,17 @@ public class FileComparisonController {
         headerStyle.setFillForegroundColor(IndexedColors.LIGHT_ORANGE.getIndex());
         headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 
-        // Encabezados según especificación: Archivo Nuevo
-        String[] headers = { "ID", "Nombre", "Total Coins" };
+        // Encabezados con nueva columna Tutora
+        String[] headers = { "ID", "Nombre", "Total Coins", "Tutora" };
         Row headerRow = sheet.createRow(0);
         for (int i = 0; i < headers.length; i++) {
             org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
             cell.setCellValue(headers[i]);
             cell.setCellStyle(headerStyle);
         }
+
+        // Calcular porcentaje a retener (si descuento es 60%, se retiene 40%)
+        double porcentajeRetener = (100.0 - porcentajeDescuento) / 100.0;
 
         int rowIndex = 1;
         for (FileRecord record : salsaRecords) {
@@ -596,6 +600,36 @@ public class FileComparisonController {
             // Total Coins <- CSV: Total Monedas
             String totalCoins = getFieldValue(record, "CSV_Total de Monedas", "CSV_Total Monedas", "CSV_Total Coins");
             row.createCell(2).setCellValue(totalCoins);
+
+            // Tutora <- Cálculo: (Bono de Agencia - descuento%) + (Bonus Top 100 - descuento%)
+            double tutora = 0.0;
+            
+            // Obtener Bono de Agencia $
+            String bonoAgencia = getFieldValue(record, "CSV_Bono de Agencia $", "Bono de Agencia $", "CSV_Bono de Agencia");
+            double bonoAgenciaNum = 0.0;
+            try {
+                if (bonoAgencia != null && !bonoAgencia.trim().isEmpty()) {
+                    bonoAgenciaNum = Double.parseDouble(bonoAgencia.replace(",", ""));
+                }
+            } catch (NumberFormatException e) {
+                // dejar en 0
+            }
+            
+            // Obtener Bonus Top 100 (o Bonus)
+            String bonusTop100 = getFieldValue(record, "CSV_Bonus Top 100", "Bonus Top 100", "CSV_Bonus", "Bonus");
+            double bonusTop100Num = 0.0;
+            try {
+                if (bonusTop100 != null && !bonusTop100.trim().isEmpty()) {
+                    bonusTop100Num = Double.parseDouble(bonusTop100.replace(",", ""));
+                }
+            } catch (NumberFormatException e) {
+                // dejar en 0
+            }
+            
+            // Calcular Tutora: aplicar descuento a ambos y sumar
+            tutora = (bonoAgenciaNum * porcentajeRetener) + (bonusTop100Num * porcentajeRetener);
+            
+            row.createCell(3).setCellValue(String.format("%.2f", tutora));
         }
 
         for (int i = 0; i < headers.length; i++) {
