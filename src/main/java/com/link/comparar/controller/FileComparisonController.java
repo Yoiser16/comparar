@@ -261,9 +261,11 @@ public class FileComparisonController {
     }
     @GetMapping("/download/livejoy-tutora")
     public ResponseEntity<byte[]> downloadLivejoyTutora(
-            @SessionAttribute("comparisonResult") ComparisonResult result) {
+            @SessionAttribute("comparisonResult") ComparisonResult result,
+            @RequestParam(value = "p1", defaultValue = "12") double porcentaje1,
+            @RequestParam(value = "p2", defaultValue = "40") double porcentaje2) {
         try {
-            byte[] data = generateLivejoyTutoraExcel(result.getMatchingRecords());
+            byte[] data = generateLivejoyTutoraExcel(result.getMatchingRecords(), porcentaje1, porcentaje2);
             String filename = "livejoy_tutora.xlsx";
             MediaType mediaType = MediaType
                     .parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
@@ -277,6 +279,26 @@ public class FileComparisonController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    @GetMapping("/download/salsa-resumen")
+    public ResponseEntity<byte[]> downloadSalsaResumen(
+            @SessionAttribute("comparisonResult") ComparisonResult result) {
+        try {
+            byte[] data = generateSalsaResumenExcel(result.getMatchingRecords());
+            String filename = "salsa_resumen.xlsx";
+            MediaType mediaType = MediaType
+                    .parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(mediaType);
+            headers.setContentDispositionFormData("attachment", filename);
+            headers.setContentLength(data.length);
+            return ResponseEntity.ok().headers(headers).body(data);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     @GetMapping("/download/csv-only")
     public ResponseEntity<byte[]> downloadCsvOnly(@SessionAttribute("comparisonResult") ComparisonResult result) {
         try {
@@ -435,7 +457,7 @@ public class FileComparisonController {
         return baos.toByteArray();
     }
 
-    private byte[] generateLivejoyTutoraExcel(List<FileRecord> records) throws Exception {
+    private byte[] generateLivejoyTutoraExcel(List<FileRecord> records, double porcentaje1, double porcentaje2) throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("LIVEJOY");
@@ -501,12 +523,12 @@ public class FileComparisonController {
             String nombreCompleto = getFieldValue(record, "Excel_Nombre Completo", "Excel_Nombre");
             row.createCell(5).setCellValue(nombreCompleto);
             
-            // Tutora (Calculado: Ingresos * 12% * 40%)
+            // Tutora (Calculado: Ingresos * porcentaje1 * porcentaje2)
             double tutoraValue = 0.0;
             try {
                 if (ingresos != null && !ingresos.trim().isEmpty()) {
                     double ingresosNum = Double.parseDouble(ingresos.replace(",", ""));
-                    tutoraValue = ingresosNum * 0.12 * 0.40;
+                    tutoraValue = ingresosNum * (porcentaje1 / 100.0) * (porcentaje2 / 100.0);
                 }
             } catch (NumberFormatException e) {
                 // Si no se puede parsear, dejar en 0
@@ -515,6 +537,67 @@ public class FileComparisonController {
         }
 
         // Auto-ajustar columnas
+        for (int i = 0; i < headers.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+
+        workbook.write(baos);
+        workbook.close();
+        return baos.toByteArray();
+    }
+
+    private byte[] generateSalsaResumenExcel(List<FileRecord> records) throws Exception {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("SALSA");
+
+        // Filtrar solo registros cuya hoja de Excel sea SALSA
+        List<FileRecord> salsaRecords = records.stream()
+                .filter(r -> r.getData() != null &&
+                        "SALSA".equalsIgnoreCase(r.getData().get("Excel_Sheet")))
+                .toList();
+
+        if (salsaRecords.isEmpty()) {
+            Row row = sheet.createRow(0);
+            org.apache.poi.ss.usermodel.Cell cell = row.createCell(0);
+            cell.setCellValue("No hay registros de SALSA para exportar");
+            workbook.write(baos);
+            workbook.close();
+            return baos.toByteArray();
+        }
+
+        CellStyle headerStyle = workbook.createCellStyle();
+        Font headerFont = workbook.createFont();
+        headerFont.setBold(true);
+        headerStyle.setFont(headerFont);
+        headerStyle.setFillForegroundColor(IndexedColors.LIGHT_ORANGE.getIndex());
+        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        // Encabezados según especificación: Archivo Nuevo
+        String[] headers = { "ID", "Nombre", "Total Coins" };
+        Row headerRow = sheet.createRow(0);
+        for (int i = 0; i < headers.length; i++) {
+            org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        int rowIndex = 1;
+        for (FileRecord record : salsaRecords) {
+            Row row = sheet.createRow(rowIndex++);
+
+            // ID <- CSV: ID
+            row.createCell(0).setCellValue(record.getId() != null ? record.getId() : "");
+
+            // Nombre <- CSV: Nombre Completo
+            String nombre = getFieldValue(record, "CSV_Nombre Completo", "CSV_Nombre");
+            row.createCell(1).setCellValue(nombre);
+
+            // Total Coins <- CSV: Total Monedas
+            String totalCoins = getFieldValue(record, "CSV_Total de Monedas", "CSV_Total Monedas", "CSV_Total Coins");
+            row.createCell(2).setCellValue(totalCoins);
+        }
+
         for (int i = 0; i < headers.length; i++) {
             sheet.autoSizeColumn(i);
         }
