@@ -498,6 +498,7 @@ public class FileComparisonController {
 
         // Crear filas de datos
         int rowIndex = 1;
+        double totalTutora = 0.0;
         for (FileRecord record : livejoyRecords) {
             Row row = sheet.createRow(rowIndex++);
             
@@ -535,7 +536,25 @@ public class FileComparisonController {
                 // Si no se puede parsear, dejar en 0
             }
             row.createCell(6).setCellValue(String.format("%.2f", tutoraValue));
+            totalTutora += tutoraValue;
         }
+
+        // Agregar fila de TOTAL
+        CellStyle totalStyle = workbook.createCellStyle();
+        Font totalFont = workbook.createFont();
+        totalFont.setBold(true);
+        totalStyle.setFont(totalFont);
+        totalStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        totalStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        Row totalRow = sheet.createRow(rowIndex);
+        org.apache.poi.ss.usermodel.Cell totalLabelCell = totalRow.createCell(0);
+        totalLabelCell.setCellValue("TOTAL");
+        totalLabelCell.setCellStyle(totalStyle);
+        
+        org.apache.poi.ss.usermodel.Cell totalValueCell = totalRow.createCell(6);
+        totalValueCell.setCellValue(String.format("%.2f", totalTutora));
+        totalValueCell.setCellStyle(totalStyle);
 
         // Auto-ajustar columnas
         for (int i = 0; i < headers.length; i++) {
@@ -587,6 +606,7 @@ public class FileComparisonController {
         double porcentajeRetener = (100.0 - porcentajeDescuento) / 100.0;
 
         int rowIndex = 1;
+        double totalTutora = 0.0;
         for (FileRecord record : salsaRecords) {
             // Obtener Bono de Agencia $
             String bonoAgencia = getFieldValue(record, "CSV_Bono de Agencia $", "Bono de Agencia $", "CSV_Bono de Agencia");
@@ -620,7 +640,25 @@ public class FileComparisonController {
             double tutora = (bonoAgenciaValue * porcentajeRetener) + (bonusTop100Value * porcentajeRetener);
 
             row.createCell(3).setCellValue(String.format("%.2f", tutora));
+            totalTutora += tutora;
         }
+
+        // Agregar fila de TOTAL
+        CellStyle totalStyle = workbook.createCellStyle();
+        Font totalFont = workbook.createFont();
+        totalFont.setBold(true);
+        totalStyle.setFont(totalFont);
+        totalStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        totalStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        Row totalRow = sheet.createRow(rowIndex);
+        org.apache.poi.ss.usermodel.Cell totalLabelCell = totalRow.createCell(0);
+        totalLabelCell.setCellValue("TOTAL");
+        totalLabelCell.setCellStyle(totalStyle);
+        
+        org.apache.poi.ss.usermodel.Cell totalValueCell = totalRow.createCell(3);
+        totalValueCell.setCellValue(String.format("%.2f", totalTutora));
+        totalValueCell.setCellStyle(totalStyle);
 
         for (int i = 0; i < headers.length; i++) {
             sheet.autoSizeColumn(i);
