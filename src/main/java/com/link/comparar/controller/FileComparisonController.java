@@ -23,14 +23,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import com.itextpdf.kernel.pdf.PdfDocument;
-import com.itextpdf.kernel.pdf.PdfWriter;
-import com.itextpdf.layout.Document;
-import com.itextpdf.layout.element.Paragraph;
-import com.itextpdf.layout.element.Table;
-import com.itextpdf.layout.element.Cell;
-import com.itextpdf.layout.properties.TextAlignment;
-import com.itextpdf.layout.properties.UnitValue;
 
 import jakarta.servlet.http.HttpSession;
 import java.io.ByteArrayOutputStream;
@@ -240,11 +232,6 @@ public class FileComparisonController {
                     filename = "coincidencias.xlsx";
                     mediaType = MediaType
                             .parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-                    break;
-                case "pdf":
-                    data = generatePdf(result.getMatchingRecords(), "Registros Coincidentes");
-                    filename = "coincidencias.pdf";
-                    mediaType = MediaType.APPLICATION_PDF;
                     break;
                 default:
                     data = generateCsv(result.getMatchingRecords(), "matches");
@@ -692,72 +679,6 @@ public class FileComparisonController {
             }
         }
         return "";
-    }
-
-    private byte[] generatePdf(List<FileRecord> records, String title) throws Exception {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        PdfWriter writer = new PdfWriter(baos);
-        PdfDocument pdf = new PdfDocument(writer);
-        Document document = new Document(pdf);
-
-        // Título
-        Paragraph titlePara = new Paragraph(title)
-                .setFontSize(18)
-                .setBold()
-                .setTextAlignment(TextAlignment.CENTER);
-        document.add(titlePara);
-
-        document.add(new Paragraph(" ")); // Espacio
-
-        if (records.isEmpty()) {
-            document.add(new Paragraph("No hay registros para exportar"));
-            document.close();
-            return baos.toByteArray();
-        }
-
-        // Recolectar columnas
-        Set<String> allColumns = new LinkedHashSet<>();
-        allColumns.add("ID");
-        for (FileRecord record : records) {
-            if (record.getData() != null) {
-                allColumns.addAll(record.getData().keySet());
-            }
-        }
-
-        // Crear tabla
-        Table table = new Table(UnitValue.createPercentArray(allColumns.size()))
-                .useAllAvailableWidth();
-
-        // Encabezados
-        for (String column : allColumns) {
-            table.addHeaderCell(new Cell()
-                    .add(new Paragraph(column).setBold())
-                    .setBackgroundColor(com.itextpdf.kernel.colors.ColorConstants.LIGHT_GRAY));
-        }
-
-        // Filas de datos
-        for (FileRecord record : records) {
-            for (String column : allColumns) {
-                String value;
-                if (column.equals("ID")) {
-                    value = record.getId();
-                } else {
-                    value = record.getData() != null ? record.getData().get(column) : "";
-                }
-                table.addCell(new Cell().add(new Paragraph(value != null ? value : "")));
-            }
-        }
-
-        document.add(table);
-
-        // Pie de página
-        document.add(new Paragraph(" "));
-        document.add(new Paragraph("Total de registros: " + records.size())
-                .setFontSize(10)
-                .setTextAlignment(TextAlignment.RIGHT));
-
-        document.close();
-        return baos.toByteArray();
     }
 
     /**
