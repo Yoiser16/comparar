@@ -588,6 +588,21 @@ public class FileComparisonController {
 
         int rowIndex = 1;
         for (FileRecord record : salsaRecords) {
+            // Obtener Bono de Agencia $
+            String bonoAgencia = getFieldValue(record, "CSV_Bono de Agencia $", "Bono de Agencia $", "CSV_Bono de Agencia");
+            Double bonoAgenciaNum = parseOptionalDouble(bonoAgencia);
+
+            // Obtener Bonus Top 100 (o Bonus), incluyendo variante con $
+            String bonusTop100 = getFieldValue(record, "CSV_Bonus Top 100$", "CSV_Bonus Top 100", "Bonus Top 100", "CSV_Bonus", "Bonus");
+            Double bonusTop100Num = parseOptionalDouble(bonusTop100);
+
+            // Excluir solo cuando ambos valores no aportan al cálculo (<= 0 o vacíos)
+            double bonoAgenciaValue = bonoAgenciaNum != null ? bonoAgenciaNum : 0.0;
+            double bonusTop100Value = bonusTop100Num != null ? bonusTop100Num : 0.0;
+            if (bonoAgenciaValue <= 0.0 && bonusTop100Value <= 0.0) {
+                continue;
+            }
+
             Row row = sheet.createRow(rowIndex++);
 
             // ID <- CSV: ID
@@ -602,33 +617,8 @@ public class FileComparisonController {
             row.createCell(2).setCellValue(totalCoins);
 
             // Tutora <- Cálculo: (Bono de Agencia - descuento%) + (Bonus Top 100 - descuento%)
-            double tutora = 0.0;
-            
-            // Obtener Bono de Agencia $
-            String bonoAgencia = getFieldValue(record, "CSV_Bono de Agencia $", "Bono de Agencia $", "CSV_Bono de Agencia");
-            double bonoAgenciaNum = 0.0;
-            try {
-                if (bonoAgencia != null && !bonoAgencia.trim().isEmpty()) {
-                    bonoAgenciaNum = Double.parseDouble(bonoAgencia.replace(",", ""));
-                }
-            } catch (NumberFormatException e) {
-                // dejar en 0
-            }
-            
-            // Obtener Bonus Top 100 (o Bonus)
-            String bonusTop100 = getFieldValue(record, "CSV_Bonus Top 100", "Bonus Top 100", "CSV_Bonus", "Bonus");
-            double bonusTop100Num = 0.0;
-            try {
-                if (bonusTop100 != null && !bonusTop100.trim().isEmpty()) {
-                    bonusTop100Num = Double.parseDouble(bonusTop100.replace(",", ""));
-                }
-            } catch (NumberFormatException e) {
-                // dejar en 0
-            }
-            
-            // Calcular Tutora: aplicar descuento a ambos y sumar
-            tutora = (bonoAgenciaNum * porcentajeRetener) + (bonusTop100Num * porcentajeRetener);
-            
+            double tutora = (bonoAgenciaValue * porcentajeRetener) + (bonusTop100Value * porcentajeRetener);
+
             row.createCell(3).setCellValue(String.format("%.2f", tutora));
         }
 
@@ -639,6 +629,17 @@ public class FileComparisonController {
         workbook.write(baos);
         workbook.close();
         return baos.toByteArray();
+    }
+
+    private Double parseOptionalDouble(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return Double.parseDouble(value.replace(",", "").trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private String getFieldValue(FileRecord record, String... fieldNames) {
