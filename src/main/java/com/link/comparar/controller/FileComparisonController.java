@@ -37,6 +37,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -766,9 +768,7 @@ public class FileComparisonController {
         List<HistoricoIngreso> registros = historicoService.obtenerTodosLosRegistros();
         List<String> periodosDisponibles = historicoService.obtenerPeriodosDisponibles();
 
-        model.addAttribute("registros", registros);
-        model.addAttribute("periodosDisponibles", periodosDisponibles);
-        model.addAttribute("periodoSeleccionado", null);
+        prepararDatosHistoricoPorSheet(model, registros, periodosDisponibles, null);
         return "historico";
     }
 
@@ -783,9 +783,7 @@ public class FileComparisonController {
         List<HistoricoIngreso> registros = historicoService.buscarPorPeriodo(periodo);
         List<String> periodosDisponibles = historicoService.obtenerPeriodosDisponibles();
 
-        model.addAttribute("registros", registros);
-        model.addAttribute("periodosDisponibles", periodosDisponibles);
-        model.addAttribute("periodoSeleccionado", periodo);
+        prepararDatosHistoricoPorSheet(model, registros, periodosDisponibles, periodo);
         return "historico";
     }
 
@@ -813,8 +811,7 @@ public class FileComparisonController {
 
         List<String> periodosDisponibles = historicoService.obtenerPeriodosDisponibles();
 
-        model.addAttribute("registros", registros);
-        model.addAttribute("periodosDisponibles", periodosDisponibles);
+        prepararDatosHistoricoPorSheet(model, registros, periodosDisponibles, null);
         model.addAttribute("query", query);
         return "historico";
     }
@@ -936,6 +933,205 @@ public class FileComparisonController {
         httpHeaders.setContentDispositionFormData("attachment", "historico_ingresos.csv");
 
         return ResponseEntity.ok().headers(httpHeaders).body(baos.toByteArray());
+    }
+
+    /**
+     * Descarga un Excel del período seleccionado en tres hojas (SALSA, LIVEJOY, OLIVE),
+     * excluyendo las columnas Periodo y Fecha Registro.
+     */
+    @GetMapping("/historico/descargar/excel-periodo")
+    public ResponseEntity<byte[]> descargarExcelPeriodoSeleccionado(
+            @RequestParam("periodo") String periodo) throws Exception {
+
+        if (periodo == null || periodo.trim().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        List<HistoricoIngreso> registros = historicoService.buscarPorPeriodo(periodo.trim());
+
+        Workbook workbook = new XSSFWorkbook();
+        CellStyle headerStyle = workbook.createCellStyle();
+        Font headerFont = workbook.createFont();
+        headerFont.setBold(true);
+        headerStyle.setFont(headerFont);
+        headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        DataFormat dataFormat = workbook.createDataFormat();
+        CellStyle numberStyle = workbook.createCellStyle();
+        numberStyle.setDataFormat(dataFormat.getFormat("#,##0.00"));
+
+        CellStyle totalLabelStyle = workbook.createCellStyle();
+        Font totalFont = workbook.createFont();
+        totalFont.setBold(true);
+        totalLabelStyle.setFont(totalFont);
+        totalLabelStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        totalLabelStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        CellStyle totalNumberStyle = workbook.createCellStyle();
+        totalNumberStyle.cloneStyleFrom(numberStyle);
+        totalNumberStyle.setFont(totalFont);
+        totalNumberStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        totalNumberStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        Sheet salsaSheet = workbook.createSheet("SALSA");
+        String[] salsaHeaders = { "ID", "Nombre", "Total Coins", "Tutora" };
+        Row salsaHeaderRow = salsaSheet.createRow(0);
+        for (int i = 0; i < salsaHeaders.length; i++) {
+            org.apache.poi.ss.usermodel.Cell cell = salsaHeaderRow.createCell(i);
+            cell.setCellValue(salsaHeaders[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        Sheet livejoySheet = workbook.createSheet("LIVEJOY");
+        String[] livejoyHeaders = { "ID LIVEJOY", "Usuario", "Monto Dólares", "Nombre Streamers", "Tutora" };
+        Row livejoyHeaderRow = livejoySheet.createRow(0);
+        for (int i = 0; i < livejoyHeaders.length; i++) {
+            org.apache.poi.ss.usermodel.Cell cell = livejoyHeaderRow.createCell(i);
+            cell.setCellValue(livejoyHeaders[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        Sheet oliveSheet = workbook.createSheet("OLIVE");
+        String[] oliveHeaders = { "ID", "Nombre", "Monedas", "Total Monedas", "Bono Agencia", "Recompensa", "País" };
+        Row oliveHeaderRow = oliveSheet.createRow(0);
+        for (int i = 0; i < oliveHeaders.length; i++) {
+            org.apache.poi.ss.usermodel.Cell cell = oliveHeaderRow.createCell(i);
+            cell.setCellValue(oliveHeaders[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        int salsaRowNum = 1;
+        int livejoyRowNum = 1;
+        int oliveRowNum = 1;
+
+        double salsaTotalCoins = 0.0;
+        double salsaTotalTutora = 0.0;
+        double livejoyTotalMonto = 0.0;
+        double livejoyTotalTutora = 0.0;
+        double oliveTotalMonedas = 0.0;
+        double oliveTotalMonedasGeneral = 0.0;
+        double oliveTotalBonoAgencia = 0.0;
+        double oliveTotalRecompensa = 0.0;
+
+        for (HistoricoIngreso registro : registros) {
+            String sheet = registro.getSheet() != null ? registro.getSheet().toUpperCase() : "";
+
+            if ("SALSA".equals(sheet)) {
+                Row row = salsaSheet.createRow(salsaRowNum++);
+                double bonoAgencia = registro.getBonoAgencia() != null ? registro.getBonoAgencia() : 0.0;
+                double bonusTop100 = registro.getBonusTop100() != null ? registro.getBonusTop100() : 0.0;
+                double tutora = roundTwoDecimals((bonoAgencia * 0.40) + (bonusTop100 * 0.40));
+                double totalCoins = roundTwoDecimals(registro.getTotalMonedas() != null ? registro.getTotalMonedas() : 0.0);
+
+                row.createCell(0).setCellValue(registro.getIdentificacion() != null ? registro.getIdentificacion() : "");
+                row.createCell(1).setCellValue(registro.getNombreCompleto() != null ? registro.getNombreCompleto() : "");
+                row.createCell(2).setCellValue(totalCoins);
+                row.getCell(2).setCellStyle(numberStyle);
+                row.createCell(3).setCellValue(tutora);
+                row.getCell(3).setCellStyle(numberStyle);
+
+                salsaTotalCoins += totalCoins;
+                salsaTotalTutora += tutora;
+            } else if ("LIVEJOY".equals(sheet)) {
+                Row row = livejoySheet.createRow(livejoyRowNum++);
+                double ingresos = roundTwoDecimals(registro.getMonedas() != null ? registro.getMonedas() : 0.0);
+                double tutora = roundTwoDecimals(ingresos * 0.12 * 0.40);
+
+                row.createCell(0).setCellValue(registro.getIdentificacion() != null ? registro.getIdentificacion() : "");
+                row.createCell(1).setCellValue(registro.getNombreCompleto() != null ? registro.getNombreCompleto() : "");
+                row.createCell(2).setCellValue(ingresos);
+                row.getCell(2).setCellStyle(numberStyle);
+                row.createCell(3).setCellValue(registro.getNombreCompleto() != null ? registro.getNombreCompleto() : "");
+                row.createCell(4).setCellValue(tutora);
+                row.getCell(4).setCellStyle(numberStyle);
+
+                livejoyTotalMonto += ingresos;
+                livejoyTotalTutora += tutora;
+            } else if ("OLIVE".equals(sheet)) {
+                Row row = oliveSheet.createRow(oliveRowNum++);
+
+                double monedas = roundTwoDecimals(registro.getMonedas() != null ? registro.getMonedas() : 0.0);
+                double totalMonedas = roundTwoDecimals(registro.getTotalMonedas() != null ? registro.getTotalMonedas() : 0.0);
+                double bonoAgencia = roundTwoDecimals(registro.getBonoAgencia() != null ? registro.getBonoAgencia() : 0.0);
+                double recompensa = roundTwoDecimals(registro.getRecompensaEvento() != null ? registro.getRecompensaEvento() : 0.0);
+
+                row.createCell(0).setCellValue(registro.getIdentificacion() != null ? registro.getIdentificacion() : "");
+                row.createCell(1).setCellValue(registro.getNombreCompleto() != null ? registro.getNombreCompleto() : "");
+                row.createCell(2).setCellValue(monedas);
+                row.getCell(2).setCellStyle(numberStyle);
+                row.createCell(3).setCellValue(totalMonedas);
+                row.getCell(3).setCellStyle(numberStyle);
+                row.createCell(4).setCellValue(bonoAgencia);
+                row.getCell(4).setCellStyle(numberStyle);
+                row.createCell(5).setCellValue(recompensa);
+                row.getCell(5).setCellStyle(numberStyle);
+                row.createCell(6).setCellValue(registro.getPais() != null ? registro.getPais() : "");
+
+                oliveTotalMonedas += monedas;
+                oliveTotalMonedasGeneral += totalMonedas;
+                oliveTotalBonoAgencia += bonoAgencia;
+                oliveTotalRecompensa += recompensa;
+            }
+        }
+
+        Row salsaTotalRow = salsaSheet.createRow(salsaRowNum);
+        salsaTotalRow.createCell(1).setCellValue("TOTAL");
+        salsaTotalRow.getCell(1).setCellStyle(totalLabelStyle);
+        salsaTotalRow.createCell(2).setCellValue(roundTwoDecimals(salsaTotalCoins));
+        salsaTotalRow.getCell(2).setCellStyle(totalNumberStyle);
+        salsaTotalRow.createCell(3).setCellValue(roundTwoDecimals(salsaTotalTutora));
+        salsaTotalRow.getCell(3).setCellStyle(totalNumberStyle);
+
+        Row livejoyTotalRow = livejoySheet.createRow(livejoyRowNum);
+        livejoyTotalRow.createCell(1).setCellValue("TOTAL");
+        livejoyTotalRow.getCell(1).setCellStyle(totalLabelStyle);
+        livejoyTotalRow.createCell(2).setCellValue(roundTwoDecimals(livejoyTotalMonto));
+        livejoyTotalRow.getCell(2).setCellStyle(totalNumberStyle);
+        livejoyTotalRow.createCell(4).setCellValue(roundTwoDecimals(livejoyTotalTutora));
+        livejoyTotalRow.getCell(4).setCellStyle(totalNumberStyle);
+
+        Row oliveTotalRow = oliveSheet.createRow(oliveRowNum);
+        oliveTotalRow.createCell(1).setCellValue("TOTAL");
+        oliveTotalRow.getCell(1).setCellStyle(totalLabelStyle);
+        oliveTotalRow.createCell(2).setCellValue(roundTwoDecimals(oliveTotalMonedas));
+        oliveTotalRow.getCell(2).setCellStyle(totalNumberStyle);
+        oliveTotalRow.createCell(3).setCellValue(roundTwoDecimals(oliveTotalMonedasGeneral));
+        oliveTotalRow.getCell(3).setCellStyle(totalNumberStyle);
+        oliveTotalRow.createCell(4).setCellValue(roundTwoDecimals(oliveTotalBonoAgencia));
+        oliveTotalRow.getCell(4).setCellStyle(totalNumberStyle);
+        oliveTotalRow.createCell(5).setCellValue(roundTwoDecimals(oliveTotalRecompensa));
+        oliveTotalRow.getCell(5).setCellStyle(totalNumberStyle);
+
+        for (int i = 0; i < salsaHeaders.length; i++) {
+            salsaSheet.autoSizeColumn(i);
+        }
+        for (int i = 0; i < livejoyHeaders.length; i++) {
+            livejoySheet.autoSizeColumn(i);
+        }
+        for (int i = 0; i < oliveHeaders.length; i++) {
+            oliveSheet.autoSizeColumn(i);
+        }
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        workbook.write(baos);
+        workbook.close();
+
+        String safePeriodo = periodo.trim()
+                .replaceAll("[\\\\/:*?\"<>|]", "_")
+                .replaceAll("\\s+", "_");
+        String fileName = safePeriodo.isEmpty() ? "periodo.xlsx" : safePeriodo + ".xlsx";
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(
+                MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        httpHeaders.setContentDispositionFormData("attachment", fileName);
+
+        return ResponseEntity.ok().headers(httpHeaders).body(baos.toByteArray());
+    }
+
+    private double roundTwoDecimals(double value) {
+        return Math.round(value * 100.0d) / 100.0d;
     }
 
     /**
@@ -1097,5 +1293,110 @@ public class FileComparisonController {
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error al limpiar el histórico: " + e.getMessage());
         }
+    }
+
+    /**
+     * Prepara los datos del histórico agrupados por sheet (SALSA, LIVEJOY, OLIVE)
+     * con cálculo de Tutora para SALSA y LIVEJOY
+     */
+    private void prepararDatosHistoricoPorSheet(Model model, List<HistoricoIngreso> registros, 
+                                                 List<String> periodosDisponibles, String periodoSeleccionado) {
+        // Agrupar registros por sheet
+        List<Map<String, Object>> salsaRecords = new ArrayList<>();
+        List<Map<String, Object>> livejoyRecords = new ArrayList<>();
+        List<Map<String, Object>> oliveRecords = new ArrayList<>();
+        
+        for (HistoricoIngreso registro : registros) {
+            String sheet = registro.getSheet() != null ? registro.getSheet().toUpperCase() : "";
+            
+            if ("SALSA".equals(sheet)) {
+                Map<String, Object> data = new HashMap<>();
+                data.put("id", registro.getIdentificacion());
+                data.put("nombre", registro.getNombreCompleto());
+                data.put("totalCoins", registro.getTotalMonedas() != null ? registro.getTotalMonedas() : 0.0);
+                data.put("periodo", registro.getPeriodoComparacion());
+                data.put("fechaRegistro", registro.getFechaRegistro());
+                
+                // Calcular Tutora: (Bono de Agencia - 60%) + (Bonus Top 100 - 60%)
+                double bonoAgencia = registro.getBonoAgencia() != null ? registro.getBonoAgencia() : 0.0;
+                double bonusTop100 = registro.getBonusTop100() != null ? registro.getBonusTop100() : 0.0;
+                double tutora = (bonoAgencia * 0.40) + (bonusTop100 * 0.40);
+                data.put("tutora", tutora);
+                
+                salsaRecords.add(data);
+            } else if ("LIVEJOY".equals(sheet)) {
+                Map<String, Object> data = new HashMap<>();
+                data.put("id", registro.getIdentificacion());
+                data.put("usuario", registro.getNombreCompleto());
+                data.put("email", ""); // No disponible en histórico actual
+                data.put("puntos", ""); // No disponible en histórico actual
+                data.put("montoDolares", registro.getMonedas() != null ? registro.getMonedas() : 0.0);
+                data.put("nombreStreamers", registro.getNombreCompleto());
+                data.put("periodo", registro.getPeriodoComparacion());
+                data.put("fechaRegistro", registro.getFechaRegistro());
+                
+                // Calcular Tutora: Ingresos * 12% * 40%
+                double ingresos = registro.getMonedas() != null ? registro.getMonedas() : 0.0;
+                double tutora = ingresos * 0.12 * 0.40;
+                data.put("tutora", tutora);
+                
+                livejoyRecords.add(data);
+            } else if ("OLIVE".equals(sheet)) {
+                Map<String, Object> data = new HashMap<>();
+                data.put("id", registro.getIdentificacion());
+                data.put("nombre", registro.getNombreCompleto());
+                data.put("monedas", registro.getMonedas() != null ? registro.getMonedas() : 0.0);
+                data.put("totalMonedas", registro.getTotalMonedas() != null ? registro.getTotalMonedas() : 0.0);
+                data.put("bonoAgencia", registro.getBonoAgencia() != null ? registro.getBonoAgencia() : 0.0);
+                data.put("recompensa", registro.getRecompensaEvento() != null ? registro.getRecompensaEvento() : 0.0);
+                data.put("pais", registro.getPais());
+                data.put("periodo", registro.getPeriodoComparacion());
+                data.put("fechaRegistro", registro.getFechaRegistro());
+                
+                oliveRecords.add(data);
+            }
+        }
+        
+        // Calcular totales de Tutora
+        double totalTutoraSalsa = salsaRecords.stream()
+                .mapToDouble(r -> (Double) r.get("tutora"))
+                .sum();
+        double totalTutoraLivejoy = livejoyRecords.stream()
+                .mapToDouble(r -> (Double) r.get("tutora"))
+                .sum();
+        
+        // Extraer períodos únicos por hoja
+        List<String> periodosSalsa = salsaRecords.stream()
+                .map(r -> (String) r.get("periodo"))
+                .filter(p -> p != null && !p.isEmpty())
+                .distinct()
+                .sorted()
+                .toList();
+        
+        List<String> periodosLivejoy = livejoyRecords.stream()
+                .map(r -> (String) r.get("periodo"))
+                .filter(p -> p != null && !p.isEmpty())
+                .distinct()
+                .sorted()
+                .toList();
+        
+        List<String> periodosOlive = oliveRecords.stream()
+                .map(r -> (String) r.get("periodo"))
+                .filter(p -> p != null && !p.isEmpty())
+                .distinct()
+                .sorted()
+                .toList();
+        
+        model.addAttribute("salsaRecords", salsaRecords);
+        model.addAttribute("livejoyRecords", livejoyRecords);
+        model.addAttribute("oliveRecords", oliveRecords);
+        model.addAttribute("totalTutoraSalsa", totalTutoraSalsa);
+        model.addAttribute("totalTutoraLivejoy", totalTutoraLivejoy);
+        model.addAttribute("periodosSalsa", periodosSalsa);
+        model.addAttribute("periodosLivejoy", periodosLivejoy);
+        model.addAttribute("periodosOlive", periodosOlive);
+        model.addAttribute("registros", registros);
+        model.addAttribute("periodosDisponibles", periodosDisponibles);
+        model.addAttribute("periodoSeleccionado", periodoSeleccionado);
     }
 }

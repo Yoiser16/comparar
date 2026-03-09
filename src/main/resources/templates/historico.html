@@ -43,7 +43,7 @@
                     <h1 class="text-xl md:text-2xl font-bold text-slate-900 dark:text-white uppercase tracking-tight">Histórico de Ingresos</h1>
                 </div>
                 
-                <div class="flex gap-2 text-xs items-center">
+                <div class="flex gap-2 text-xs items-center flex-wrap">
                     <!-- Dark mode toggle -->
                     <button id="darkModeToggle" class="p-2 rounded-lg bg-slate-100 dark:bg-gray-700 hover:bg-slate-200 dark:hover:bg-gray-600 text-slate-600 dark:text-yellow-400 transition-colors">
                         <svg id="sunIcon" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
@@ -52,23 +52,28 @@
                     <div class="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded border border-green-200 dark:border-green-700 font-bold">
                         TOTAL: <span th:text="${#lists.size(registros)}">0</span>
                     </div>
-                    <a th:href="${periodoSeleccionado != null ? '/historico/descargar/excel?periodo=' + periodoSeleccionado : '/historico/descargar/excel'}" 
-                       class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded transition-colors shadow-sm flex items-center gap-1.5">
+                    <button type="button"
+                        th:if="${#lists.size(registros) > 0}"
+                        id="downloadPeriodBtn"
+                        onclick="downloadSelectedPeriodExcel()"
+                        class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 disabled:cursor-not-allowed text-white font-bold rounded transition-colors shadow-sm flex items-center gap-1.5">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        Descargar Excel
-                    </a>
-                    <a th:href="${periodoSeleccionado != null ? '/historico/descargar/csv?periodo=' + periodoSeleccionado : '/historico/descargar/csv'}" 
-                       class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition-colors shadow-sm flex items-center gap-1.5">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        Descargar CSV
-                    </a>
-                        <button type="button"
-                            th:if="${#lists.size(registros) > 0}"
-                            th:data-periodo="${periodoSeleccionado}"
-                            onclick="openDeleteModal(this)"
-                            th:text="${periodoSeleccionado != null ? 'Eliminar Período' : 'Limpiar Todo'}"
-                            class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded transition-colors shadow-sm flex items-center gap-1.5">
+                        Descargar Excel Período
+                    </button>
+                    <button type="button"
+                        th:if="${#lists.size(registros) > 0}"
+                        id="deletePeriodBtn"
+                        onclick="openDeleteSelectedPeriodModal()"
+                        class="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-300 disabled:cursor-not-allowed text-white font-bold rounded transition-colors shadow-sm flex items-center gap-1.5">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        Eliminar Período
+                    </button>
+                    <button type="button"
+                        th:if="${#lists.size(registros) > 0}"
+                        onclick="openDeleteModal()"
+                        class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded transition-colors shadow-sm flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        Limpiar Todo
                     </button>
                     <a href="/historico/logout" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded transition-colors shadow-sm flex items-center gap-1.5">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
@@ -93,37 +98,14 @@
             <span class="font-medium" th:text="${error}">Error</span>
         </div>
         
-        <!-- Filtro por Periodo -->
-        <div class="mb-4">
-            <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-                <div class="flex items-center gap-4 flex-wrap">
-                    <label class="text-sm font-bold text-slate-700">Filtrar por Periodo:</label>
-                    <div class="flex gap-2 flex-wrap">
-                        <a href="/historico" 
-                           th:classappend="${periodoSeleccionado == null ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}" 
-                           class="px-4 py-2 rounded-lg font-bold transition-colors text-sm">
-                            Todos
-                        </a>
-                        <a th:each="periodo : ${periodosDisponibles}" 
-                           th:href="@{/historico/periodo(p=${periodo})}"
-                           th:text="${periodo}"
-                           th:classappend="${periodoSeleccionado == periodo ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}" 
-                           class="px-4 py-2 rounded-lg font-bold transition-colors text-sm">
-                            Periodo
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
         <!-- Buscador -->
         <div class="mb-6">
             <form action="/historico/buscar" method="get" class="flex gap-2">
                 <div class="flex-1 relative">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        <svg class="h-5 h-5 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </div>
-                    <input type="text" name="query" th:value="${query}" class="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm shadow-sm" placeholder="Buscar por ID o nombre...">
+                    <input type="text" name="query" th:value="${query}" class="block w-full pl-10 pr-3 py-3 border border-slate-300 dark:border-gray-600 rounded-lg leading-5 bg-white dark:bg-gray-800 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm shadow-sm" placeholder="Buscar por ID o nombre...">
                 </div>
                 <button type="submit" class="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition-colors shadow-sm">
                     Buscar
@@ -134,45 +116,168 @@
             </form>
         </div>
 
-        <!-- Tabla de registros -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="min-w-full border-collapse">
-                    <thead class="bg-slate-50 dark:bg-gray-700">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">ID</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Nombre Completo</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Periodo</th>
-                            <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Monedas</th>
-                            <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Total Monedas</th>
-                            <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Bono Agencia</th>
-                            <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Recompensa</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">País</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Sheet</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider border border-slate-300 dark:border-gray-600">Fecha Registro</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white dark:bg-gray-800">
-                        <tr th:if="${#lists.isEmpty(registros)}">
-                            <td colspan="10" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400 italic border border-slate-300 dark:border-gray-600">
-                                <svg class="w-12 h-12 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
-                                No hay registros en el histórico
-                            </td>
-                        </tr>
-                        <tr th:each="registro : ${registros}" class="hover:bg-slate-50 dark:hover:bg-gray-700 transition-colors">
-                            <td class="px-4 py-3 whitespace-nowrap text-sm font-mono font-bold text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-gray-600" th:text="${registro.identificacion}">ID</td>
-                            <td class="px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium border border-slate-300 dark:border-gray-600" th:text="${registro.nombreCompleto}">Nombre</td>
-                            <td class="px-4 py-3 text-sm text-purple-700 dark:text-purple-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${registro.periodoComparacion != null ? registro.periodoComparacion : '-'}">Periodo</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-orange-600 dark:text-orange-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${registro.monedas != null ? registro.monedas : '-'}">0</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-green-700 dark:text-green-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${registro.totalMonedas != null ? registro.totalMonedas : '-'}">0</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-blue-700 dark:text-blue-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${registro.bonoAgencia != null ? registro.bonoAgencia : '-'}">$0</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${registro.recompensaEvento != null ? registro.recompensaEvento : '-'}">$0</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.pais != null ? registro.pais : '-'}">-</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.sheet != null ? registro.sheet : '-'}">-</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-xs text-slate-600 dark:text-slate-400 font-mono border border-slate-300 dark:border-gray-600" th:text="${#temporals.format(registro.fechaRegistro, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>
-                        </tr>
-                    </tbody>
-                </table>
+        <!-- Tabs Navigation -->
+        <div class="mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700">
+            <nav class="flex gap-1 p-2">
+                <button onclick="showTab('salsa')" id="tabSalsa" class="tab-button flex-1 px-4 py-3 rounded-lg font-bold text-sm transition-colors bg-amber-600 text-white">
+                    SALSA (<span th:text="${#lists.size(salsaRecords)}">0</span>)
+                </button>
+                <button onclick="showTab('livejoy')" id="tabLivejoy" class="tab-button flex-1 px-4 py-3 rounded-lg font-bold text-sm transition-colors bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-600">
+                    LIVEJOY (<span th:text="${#lists.size(livejoyRecords)}">0</span>)
+                </button>
+                <button onclick="showTab('olive')" id="tabOlive" class="tab-button flex-1 px-4 py-3 rounded-lg font-bold text-sm transition-colors bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-600">
+                    OLIVE (<span th:text="${#lists.size(oliveRecords)}">0</span>)
+                </button>
+            </nav>
+        </div>
+
+        <!-- SALSA Tab Content -->
+        <div id="contentSalsa" class="tab-content">
+            <div class="mb-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 p-3">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <span class="text-xs font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wide">Períodos SALSA</span>
+                    <div class="flex gap-2 flex-wrap" id="periodNavbarSalsa">
+                        <button type="button" data-tab="salsa" data-period="all" onclick="selectPeriod('salsa', 'all')" class="period-button-salsa px-3 py-1.5 rounded-lg font-bold text-xs transition-colors bg-amber-600 text-white">Todos</button>
+                        <button type="button" th:each="periodo : ${periodosSalsa}" th:attr="data-tab='salsa',data-period=${periodo}" th:text="${periodo}" onclick="selectPeriodFromButton(this)" class="period-button-salsa px-3 py-1.5 rounded-lg font-bold text-xs transition-colors bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-600">Periodo</button>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full border-collapse">
+                        <thead class="bg-amber-50 dark:bg-amber-900/20">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wider border border-amber-200 dark:border-amber-800">ID</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wider border border-amber-200 dark:border-amber-800">Nombre</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wider border border-amber-200 dark:border-amber-800">Total Coins</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wider border border-amber-200 dark:border-amber-800">Tutora</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wider border border-amber-200 dark:border-amber-800">Periodo</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wider border border-amber-200 dark:border-amber-800">Fecha Registro</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800">
+                            <tr th:if="${#lists.isEmpty(salsaRecords)}">
+                                <td colspan="6" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400 italic border border-slate-300 dark:border-gray-600">
+                                    No hay registros de SALSA
+                                </td>
+                            </tr>
+                            <tr th:each="registro : ${salsaRecords}" class="hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors data-row-salsa" th:attr="data-period=${registro.periodo},data-tutora=${registro.tutora}">
+                                <td class="px-4 py-3 whitespace-nowrap text-sm font-mono font-bold text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-gray-600" th:text="${registro.id}">ID</td>
+                                <td class="px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium border border-slate-300 dark:border-gray-600" th:text="${registro.nombre}">Nombre</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-green-700 dark:text-green-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${#numbers.formatDecimal(registro.totalCoins, 1, 2)}">0.00</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 font-bold border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(registro.tutora, 1, 2)}">$0.00</td>
+                                <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.periodo}">-</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-xs text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${#temporals.format(registro.fechaRegistro, 'dd/MM/yyyy HH:mm')}">-</td>
+                            </tr>
+                            <tr id="totalRowSalsa" th:if="${not #lists.isEmpty(salsaRecords)}" class="bg-gray-100 dark:bg-gray-700 font-bold">
+                                <td colspan="3" class="px-4 py-3 text-right text-sm uppercase border border-slate-300 dark:border-gray-600">TOTAL:</td>
+                                <td id="totalValueSalsa" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-900 dark:text-purple-300 font-bold border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(totalTutoraSalsa, 1, 2)}">$0.00</td>
+                                <td colspan="2" class="border border-slate-300 dark:border-gray-600"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- LIVEJOY Tab Content -->
+        <div id="contentLivejoy" class="tab-content hidden">
+            <div class="mb-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 p-3">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <span class="text-xs font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wide">Períodos LIVEJOY</span>
+                    <div class="flex gap-2 flex-wrap" id="periodNavbarLivejoy">
+                        <button type="button" data-tab="livejoy" data-period="all" onclick="selectPeriod('livejoy', 'all')" class="period-button-livejoy px-3 py-1.5 rounded-lg font-bold text-xs transition-colors bg-purple-600 text-white">Todos</button>
+                        <button type="button" th:each="periodo : ${periodosLivejoy}" th:attr="data-tab='livejoy',data-period=${periodo}" th:text="${periodo}" onclick="selectPeriodFromButton(this)" class="period-button-livejoy px-3 py-1.5 rounded-lg font-bold text-xs transition-colors bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-600">Periodo</button>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full border-collapse">
+                        <thead class="bg-purple-50 dark:bg-purple-900/20">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-purple-900 dark:text-purple-200 uppercase tracking-wider border border-purple-200 dark:border-purple-800">ID LIVEJOY</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-purple-900 dark:text-purple-200 uppercase tracking-wider border border-purple-200 dark:border-purple-800">Usuario</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-purple-900 dark:text-purple-200 uppercase tracking-wider border border-purple-200 dark:border-purple-800">Monto Dólares</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-purple-900 dark:text-purple-200 uppercase tracking-wider border border-purple-200 dark:border-purple-800">Nombre Streamers</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-purple-900 dark:text-purple-200 uppercase tracking-wider border border-purple-200 dark:border-purple-800">Tutora</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-purple-900 dark:text-purple-200 uppercase tracking-wider border border-purple-200 dark:border-purple-800">Periodo</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-purple-900 dark:text-purple-200 uppercase tracking-wider border border-purple-200 dark:border-purple-800">Fecha Registro</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800">
+                            <tr th:if="${#lists.isEmpty(livejoyRecords)}">
+                                <td colspan="7" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400 italic border border-slate-300 dark:border-gray-600">
+                                    No hay registros de LIVEJOY
+                                </td>
+                            </tr>
+                            <tr th:each="registro : ${livejoyRecords}" class="hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-colors data-row-livejoy" th:attr="data-period=${registro.periodo},data-tutora=${registro.tutora}">
+                                <td class="px-4 py-3 whitespace-nowrap text-sm font-mono font-bold text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-gray-600" th:text="${registro.id}">ID</td>
+                                <td class="px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium border border-slate-300 dark:border-gray-600" th:text="${registro.usuario}">Usuario</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-green-700 dark:text-green-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(registro.montoDolares, 1, 2)}">$0.00</td>
+                                <td class="px-4 py-3 text-sm text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-gray-600" th:text="${registro.nombreStreamers}">Streamer</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 font-bold border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(registro.tutora, 1, 2)}">$0.00</td>
+                                <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.periodo}">-</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-xs text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${#temporals.format(registro.fechaRegistro, 'dd/MM/yyyy HH:mm')}">-</td>
+                            </tr>
+                            <tr id="totalRowLivejoy" th:if="${not #lists.isEmpty(livejoyRecords)}" class="bg-gray-100 dark:bg-gray-700 font-bold">
+                                <td colspan="4" class="px-4 py-3 text-right text-sm uppercase border border-slate-300 dark:border-gray-600">TOTAL:</td>
+                                <td id="totalValueLivejoy" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-900 dark:text-purple-300 font-bold border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(totalTutoraLivejoy, 1, 2)}">$0.00</td>
+                                <td colspan="2" class="border border-slate-300 dark:border-gray-600"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- OLIVE Tab Content -->
+        <div id="contentOlive" class="tab-content hidden">
+            <div class="mb-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 p-3">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <span class="text-xs font-bold text-green-700 dark:text-green-300 uppercase tracking-wide">Períodos OLIVE</span>
+                    <div class="flex gap-2 flex-wrap" id="periodNavbarOlive">
+                        <button type="button" data-tab="olive" data-period="all" onclick="selectPeriod('olive', 'all')" class="period-button-olive px-3 py-1.5 rounded-lg font-bold text-xs transition-colors bg-green-600 text-white">Todos</button>
+                        <button type="button" th:each="periodo : ${periodosOlive}" th:attr="data-tab='olive',data-period=${periodo}" th:text="${periodo}" onclick="selectPeriodFromButton(this)" class="period-button-olive px-3 py-1.5 rounded-lg font-bold text-xs transition-colors bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-600">Periodo</button>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full border-collapse">
+                        <thead class="bg-green-50 dark:bg-green-900/20">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">ID</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Nombre</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Monedas</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Total Monedas</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Bono Agencia</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Recompensa</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">País</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Periodo</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Fecha Registro</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800">
+                            <tr th:if="${#lists.isEmpty(oliveRecords)}">
+                                <td colspan="9" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400 italic border border-slate-300 dark:border-gray-600">
+                                    No hay registros de OLIVE
+                                </td>
+                            </tr>
+                            <tr th:each="registro : ${oliveRecords}" class="hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors data-row-olive" th:attr="data-period=${registro.periodo}">
+                                <td class="px-4 py-3 whitespace-nowrap text-sm font-mono font-bold text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-gray-600" th:text="${registro.id}">ID</td>
+                                <td class="px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium border border-slate-300 dark:border-gray-600" th:text="${registro.nombre}">Nombre</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-orange-600 dark:text-orange-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${#numbers.formatDecimal(registro.monedas, 1, 2)}">0.00</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-green-700 dark:text-green-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${#numbers.formatDecimal(registro.totalMonedas, 1, 2)}">0.00</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-blue-700 dark:text-blue-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(registro.bonoAgencia, 1, 2)}">$0.00</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(registro.recompensa, 1, 2)}">$0.00</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.pais}">-</td>
+                                <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.periodo}">-</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-xs text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${#temporals.format(registro.fechaRegistro, 'dd/MM/yyyy HH:mm')}">-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -198,30 +303,195 @@
     </div>
 
     <script>
-        let deleteTargetPeriodo = null;
-        let deleteModeAll = false;
+        // Dark mode toggle
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        darkModeToggle.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+        });
 
-        function openDeleteModal(button) {
-            const periodo = button.getAttribute('data-periodo');
-            deleteTargetPeriodo = periodo;
-            deleteModeAll = (periodo === null || periodo === '' || periodo === 'null');
+        const selectedPeriods = {
+            salsa: 'all',
+            livejoy: 'all',
+            olive: 'all'
+        };
 
-            const title = document.getElementById('deleteModalTitle');
-            const text = document.getElementById('deleteModalText');
-            const confirmBtn = document.getElementById('deleteConfirmBtn');
-
-            if (deleteModeAll) {
-                title.textContent = 'Limpiar histórico';
-                text.textContent = '¿Estás seguro de eliminar TODOS los registros y períodos? Esta acción no se puede deshacer.';
-                confirmBtn.textContent = 'Limpiar Todo';
-            } else {
-                title.textContent = 'Eliminar período';
-                text.textContent = `¿Estás seguro de eliminar TODOS los registros del período "${periodo}"? Esta acción no se puede deshacer.`;
-                confirmBtn.textContent = 'Eliminar Período';
+        // Tabs functionality
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // Reset all tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('bg-amber-600', 'bg-purple-600', 'bg-green-600', 'text-white');
+                button.classList.add('bg-slate-100', 'dark:bg-gray-700', 'text-slate-700', 'dark:text-slate-300');
+            });
+            
+            // Show selected content and activate button
+            if (tabName === 'salsa') {
+                document.getElementById('contentSalsa').classList.remove('hidden');
+                document.getElementById('tabSalsa').classList.remove('bg-slate-100', 'dark:bg-gray-700', 'text-slate-700', 'dark:text-slate-300');
+                document.getElementById('tabSalsa').classList.add('bg-amber-600', 'text-white');
+            } else if (tabName === 'livejoy') {
+                document.getElementById('contentLivejoy').classList.remove('hidden');
+                document.getElementById('tabLivejoy').classList.remove('bg-slate-100', 'dark:bg-gray-700', 'text-slate-700', 'dark:text-slate-300');
+                document.getElementById('tabLivejoy').classList.add('bg-purple-600', 'text-white');
+            } else if (tabName === 'olive') {
+                document.getElementById('contentOlive').classList.remove('hidden');
+                document.getElementById('tabOlive').classList.remove('bg-slate-100', 'dark:bg-gray-700', 'text-slate-700', 'dark:text-slate-300');
+                document.getElementById('tabOlive').classList.add('bg-green-600', 'text-white');
             }
 
-            confirmBtn.onclick = performDelete;
+            applyPeriodFilter(tabName);
+            updateDeletePeriodButtonState();
+            updateDownloadPeriodButtonState();
+        }
+
+        function selectPeriod(tabName, period) {
+            selectedPeriods[tabName] = period;
+            updatePeriodButtons(tabName, period);
+            applyPeriodFilter(tabName);
+            updateDeletePeriodButtonState();
+            updateDownloadPeriodButtonState();
+        }
+
+        function selectPeriodFromButton(button) {
+            const tabName = button.getAttribute('data-tab');
+            const period = button.getAttribute('data-period');
+            if (!tabName || !period) {
+                return;
+            }
+            selectPeriod(tabName, period);
+        }
+
+        function updatePeriodButtons(tabName, selectedPeriod) {
+            document.querySelectorAll(`.period-button-${tabName}`).forEach(button => {
+                const period = button.getAttribute('data-period');
+                if (period === selectedPeriod) {
+                    button.classList.remove('bg-slate-100', 'dark:bg-gray-700', 'text-slate-700', 'dark:text-slate-300');
+                    if (tabName === 'salsa') {
+                        button.classList.add('bg-amber-600', 'text-white');
+                    } else if (tabName === 'livejoy') {
+                        button.classList.add('bg-purple-600', 'text-white');
+                    } else {
+                        button.classList.add('bg-green-600', 'text-white');
+                    }
+                } else {
+                    button.classList.remove('bg-amber-600', 'bg-purple-600', 'bg-green-600', 'text-white');
+                    button.classList.add('bg-slate-100', 'dark:bg-gray-700', 'text-slate-700', 'dark:text-slate-300');
+                }
+            });
+        }
+
+        function applyPeriodFilter(tabName) {
+            const selectedPeriod = selectedPeriods[tabName] || 'all';
+            const rows = document.querySelectorAll(`.data-row-${tabName}`);
+
+            rows.forEach(row => {
+                const rowPeriod = row.getAttribute('data-period') || '';
+                const mustShow = selectedPeriod === 'all' || rowPeriod === selectedPeriod;
+                row.classList.toggle('hidden', !mustShow);
+            });
+
+            updateFilteredTotals();
+        }
+
+        function updateFilteredTotals() {
+            let salsaTotal = 0;
+            document.querySelectorAll('.data-row-salsa').forEach(row => {
+                if (!row.classList.contains('hidden')) {
+                    salsaTotal += parseFloat(row.getAttribute('data-tutora') || '0');
+                }
+            });
+
+            let livejoyTotal = 0;
+            document.querySelectorAll('.data-row-livejoy').forEach(row => {
+                if (!row.classList.contains('hidden')) {
+                    livejoyTotal += parseFloat(row.getAttribute('data-tutora') || '0');
+                }
+            });
+
+            const totalValueSalsa = document.getElementById('totalValueSalsa');
+            if (totalValueSalsa) {
+                totalValueSalsa.textContent = `$${salsaTotal.toFixed(2)}`;
+            }
+
+            const totalValueLivejoy = document.getElementById('totalValueLivejoy');
+            if (totalValueLivejoy) {
+                totalValueLivejoy.textContent = `$${livejoyTotal.toFixed(2)}`;
+            }
+        }
+
+        function getActiveTabName() {
+            if (!document.getElementById('contentSalsa').classList.contains('hidden')) return 'salsa';
+            if (!document.getElementById('contentLivejoy').classList.contains('hidden')) return 'livejoy';
+            return 'olive';
+        }
+
+        function updateDeletePeriodButtonState() {
+            const deletePeriodBtn = document.getElementById('deletePeriodBtn');
+            if (!deletePeriodBtn) {
+                return;
+            }
+
+            const activeTab = getActiveTabName();
+            const periodo = selectedPeriods[activeTab] || 'all';
+            deletePeriodBtn.disabled = periodo === 'all';
+        }
+
+        function updateDownloadPeriodButtonState() {
+            const downloadPeriodBtn = document.getElementById('downloadPeriodBtn');
+            if (!downloadPeriodBtn) {
+                return;
+            }
+
+            const activeTab = getActiveTabName();
+            const periodo = selectedPeriods[activeTab] || 'all';
+            downloadPeriodBtn.disabled = periodo === 'all';
+        }
+
+        function downloadSelectedPeriodExcel() {
+            const activeTab = getActiveTabName();
+            const periodo = selectedPeriods[activeTab] || 'all';
+
+            if (periodo === 'all') {
+                return;
+            }
+
+            window.location.href = `/historico/descargar/excel-periodo?periodo=${encodeURIComponent(periodo)}`;
+        }
+
+        function openDeleteSelectedPeriodModal() {
+            const activeTab = getActiveTabName();
+            const periodo = selectedPeriods[activeTab] || 'all';
+
+            if (periodo === 'all') {
+                alert('Selecciona un período específico antes de eliminar.');
+                return;
+            }
+
+            openDeleteModal(periodo);
+        }
+
+        // Delete modal functions
+        function openDeleteModal(periodo = null) {
             const modal = document.getElementById('deleteModal');
+            const modalTitle = document.getElementById('deleteModalTitle');
+            const modalText = document.getElementById('deleteModalText');
+            const confirmBtn = document.getElementById('deleteConfirmBtn');
+
+            if (periodo) {
+                modalTitle.textContent = 'Eliminar período';
+                modalText.textContent = `¿Estás seguro de eliminar todos los registros del período "${periodo}"? Esta acción no se puede deshacer.`;
+                confirmBtn.onclick = () => eliminarPeriodo(periodo);
+            } else {
+                modalTitle.textContent = 'Limpiar histórico';
+                modalText.textContent = '¿Estás seguro de eliminar TODOS los registros del histórico? Esta acción no se puede deshacer.';
+                confirmBtn.onclick = eliminarTodo;
+            }
+
             modal.classList.remove('hidden');
             modal.classList.add('flex');
         }
@@ -232,34 +502,50 @@
             modal.classList.remove('flex');
         }
 
-        function performDelete() {
-            if (deleteModeAll) {
-                fetch('/historico/limpiar-todo', { method: 'DELETE' })
-                    .then(r => { if (r.ok) { closeDeleteModal(); window.location.href = '/historico'; } })
-                    .catch(() => { closeDeleteModal(); });
-            } else {
-                fetch('/historico/eliminar-periodo', {
+        async function eliminarPeriodo(periodo) {
+            try {
+                const response = await fetch('/historico/eliminar-periodo', {
                     method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ periodo: deleteTargetPeriodo })
-                })
-                    .then(r => { if (r.ok) { closeDeleteModal(); window.location.href = '/historico'; } })
-                    .catch(() => { closeDeleteModal(); });
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ periodo })
+                });
+                if (response.ok) {
+                    closeDeleteModal();
+                    window.location.reload();
+                } else {
+                    alert('Error al eliminar el período');
+                }
+            } catch (error) {
+                alert('Error al eliminar el período');
             }
         }
 
-        // Dark mode toggle functionality
-        const darkModeToggle = document.getElementById('darkModeToggle');
-        darkModeToggle.addEventListener('click', () => {
-            if (document.documentElement.classList.contains('dark')) {
-                document.documentElement.classList.remove('dark');
-                localStorage.theme = 'light';
-            } else {
-                document.documentElement.classList.add('dark');
-                localStorage.theme = 'dark';
+        async function eliminarTodo() {
+            try {
+                const response = await fetch('/historico/limpiar-todo', {
+                    method: 'DELETE'
+                });
+                if (response.ok) {
+                    closeDeleteModal();
+                    window.location.reload();
+                } else {
+                    alert('Error al limpiar el histórico');
+                }
+            } catch (error) {
+                alert('Error al limpiar el histórico');
             }
-        });
-    </script>
+        }
 
+        updatePeriodButtons('salsa', 'all');
+        updatePeriodButtons('livejoy', 'all');
+        updatePeriodButtons('olive', 'all');
+        applyPeriodFilter('salsa');
+        applyPeriodFilter('livejoy');
+        applyPeriodFilter('olive');
+        updateDeletePeriodButtonState();
+        updateDownloadPeriodButtonState();
+    </script>
 </body>
 </html>
