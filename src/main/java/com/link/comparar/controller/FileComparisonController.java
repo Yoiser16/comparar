@@ -454,10 +454,8 @@ public class FileComparisonController {
 
         // Filtrar solo registros de LIVEJOY
         List<FileRecord> livejoyRecords = records.stream()
-                .filter(r -> r.getData() != null && 
-                        (r.getData().containsKey("Excel_Sheet") && 
-                         "LIVEJOY".equalsIgnoreCase(r.getData().get("Excel_Sheet"))))
-                .toList();
+            .filter(r -> isRecordFromSheet(r, "LIVEJOY"))
+            .toList();
 
         if (livejoyRecords.isEmpty()) {
             Row row = sheet.createRow(0);
@@ -562,9 +560,8 @@ public class FileComparisonController {
 
         // Filtrar solo registros cuya hoja de Excel sea SALSA
         List<FileRecord> salsaRecords = records.stream()
-                .filter(r -> r.getData() != null &&
-                        "SALSA".equalsIgnoreCase(r.getData().get("Excel_Sheet")))
-                .toList();
+            .filter(r -> isRecordFromSheet(r, "SALSA"))
+            .toList();
 
         if (salsaRecords.isEmpty()) {
             Row row = sheet.createRow(0);
@@ -936,7 +933,7 @@ public class FileComparisonController {
         double oliveTotalRecompensa = 0.0;
 
         for (HistoricoIngreso registro : registros) {
-            String sheet = registro.getSheet() != null ? registro.getSheet().toUpperCase() : "";
+            String sheet = normalizeSheet(registro.getSheet());
 
             if ("SALSA".equals(sheet)) {
                 Row row = salsaSheet.createRow(salsaRowNum++);
@@ -1228,7 +1225,7 @@ public class FileComparisonController {
         List<Map<String, Object>> oliveRecords = new ArrayList<>();
         
         for (HistoricoIngreso registro : registros) {
-            String sheet = registro.getSheet() != null ? registro.getSheet().toUpperCase() : "";
+            String sheet = normalizeSheet(registro.getSheet());
             
             if ("SALSA".equals(sheet)) {
                 Map<String, Object> data = new HashMap<>();
@@ -1319,5 +1316,22 @@ public class FileComparisonController {
         model.addAttribute("registros", registros);
         model.addAttribute("periodosDisponibles", periodosDisponibles);
         model.addAttribute("periodoSeleccionado", periodoSeleccionado);
+    }
+
+    private boolean isRecordFromSheet(FileRecord record, String expectedSheet) {
+        if (record == null || record.getData() == null) {
+            return false;
+        }
+        String excelSheet = normalizeSheet(record.getData().get("Excel_Sheet"));
+        String plainSheet = normalizeSheet(record.getData().get("Sheet"));
+        String expected = normalizeSheet(expectedSheet);
+        return expected.equals(excelSheet) || expected.equals(plainSheet);
+    }
+
+    private String normalizeSheet(String sheet) {
+        if (sheet == null) {
+            return "";
+        }
+        return sheet.trim().toUpperCase();
     }
 }

@@ -64,7 +64,9 @@ public class HistoricoService {
                 String whatsapp = obtenerValor(data, "WhatsApp");
                 String fuente = determinarFuente(data);
                 String sheet = obtenerValor(data, "Sheet");
-                if (sheet != null) sheet = sheet.toUpperCase();
+                if (sheet != null) {
+                    sheet = sheet.trim().toUpperCase();
+                }
 
                 // Crear y guardar registro
                 HistoricoIngreso historico = new HistoricoIngreso(

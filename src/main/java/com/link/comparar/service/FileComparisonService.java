@@ -225,7 +225,7 @@ public class FileComparisonService {
                         continue;
 
                     Map<String, String> data = new LinkedHashMap<>();
-                    data.put("Sheet", sheetName); // guardar de qué hoja proviene
+                    data.put("Sheet", canonicalSheetName(normalizedSheetName)); // guardar hoja canónica
 
                     for (int j = 0; j < headers.size(); j++) {
                         Cell cell = row.getCell(j);
@@ -688,6 +688,18 @@ public class FileComparisonService {
                 .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
         tmp = tmp.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
         return tmp;
+    }
+
+    private String canonicalSheetName(String normalizedSheetName) {
+        if (normalizedSheetName == null) {
+            return "";
+        }
+        return switch (normalizedSheetName.trim()) {
+            case "livejoy" -> "LIVEJOY";
+            case "salsa" -> "SALSA";
+            case "olive" -> "OLIVE";
+            default -> normalizedSheetName.trim().toUpperCase(Locale.ROOT);
+        };
     }
 
     /**
