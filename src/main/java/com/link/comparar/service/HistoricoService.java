@@ -67,12 +67,14 @@ public class HistoricoService {
                 if (sheet != null) {
                     sheet = sheet.trim().toUpperCase();
                 }
+                String nombreTutora = obtenerValor(data, "NombreTutora");
 
                 // Crear y guardar registro
                 HistoricoIngreso historico = new HistoricoIngreso(
                         id, nombreCompleto, monedas, totalMonedas, bonoAgencia,
                         recompensaEvento, bonusTop100, loyaltyCredits, semana, pais, whatsapp, fuente,
                         sheet, periodoComparacion);
+                historico.setNombreTutora(nombreTutora);
 
                 historicoRepository.save(historico);
                 guardados++;

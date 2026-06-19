@@ -53,6 +53,9 @@ public class HistoricoIngreso {
     @Column(name = "periodo_comparacion", length = 200)
     private String periodoComparacion; // Etiqueta de fecha ingresada por el usuario (ej: "Semana 1 - Enero 2026")
 
+    @Column(name = "nombre_tutora", length = 300)
+    private String nombreTutora;
+
     @Column(name = "fecha_registro", nullable = false)
     private LocalDateTime fechaRegistro;
 
@@ -209,6 +212,14 @@ public class HistoricoIngreso {
 
     public void setFechaRegistro(LocalDateTime fechaRegistro) {
         this.fechaRegistro = fechaRegistro;
+    }
+
+    public String getNombreTutora() {
+        return nombreTutora;
+    }
+
+    public void setNombreTutora(String nombreTutora) {
+        this.nombreTutora = nombreTutora;
     }
 
     /**

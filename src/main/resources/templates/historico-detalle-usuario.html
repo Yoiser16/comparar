@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Usuario</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <script>
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark')
+        } else {
+            document.documentElement.classList.remove('dark')
+        }
+    </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-slate-800 dark:text-slate-200 min-h-screen transition-colors font-sans">
+
+    <!-- Header -->
+    <div class="bg-white dark:bg-gray-800 border-b border-slate-200 dark:border-gray-700 shadow-sm sticky top-0 z-30">
+        <div class="max-w-none mx-auto px-4 sm:px-8 lg:px-12">
+            <div class="flex flex-col md:flex-row justify-between items-center py-4 gap-4">
+                <div class="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
+                    <div class="flex items-center gap-3">
+                        <img src="/img/logo.png" alt="Logo" class="h-12 w-auto rounded-lg border border-slate-200 dark:border-gray-700 shadow-sm">
+                        <div class="h-8 w-px bg-slate-200 dark:bg-gray-700 hidden sm:block"></div>
+                        <h1 class="text-xl md:text-2xl font-bold text-slate-900 dark:text-white uppercase tracking-tight">Historial Individual</h1>
+                    </div>
+                    <div>
+                        <a href="/historico" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition-colors shadow-sm flex items-center gap-2 text-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                            Volver al General
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="flex gap-3 text-xs items-center">
+                    <button id="darkModeToggle" class="p-2 rounded-lg bg-slate-100 dark:bg-gray-700 hover:bg-slate-200 dark:hover:bg-gray-600 text-slate-600 dark:text-yellow-400 transition-colors">
+                        <svg id="sunIcon" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <svg id="moonIcon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="max-w-none mx-auto px-4 sm:px-8 lg:px-12 py-8">
+        
+        <!-- User Profile Card -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Usuario Seleccionado</p>
+                <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white mt-1" th:text="${nombreUsuario}">Nombre del Usuario</h2>
+                <div class="flex items-center gap-4 mt-2">
+                    <span class="font-mono text-sm bg-slate-100 dark:bg-gray-700 px-2.5 py-1 rounded font-bold text-slate-600 dark:text-slate-300">
+                        ID: <span th:text="${usuarioId}">0000</span>
+                    </span>
+                    <div class="flex gap-1.5">
+                        <span th:if="${#sets.contains(plataformas, 'SALSA')}" class="px-2 py-0.5 text-[10px] font-bold bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 rounded shadow-sm">SALSA</span>
+                        <span th:if="${#sets.contains(plataformas, 'LIVEJOY')}" class="px-2 py-0.5 text-[10px] font-bold bg-purple-100 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 rounded shadow-sm">LIVEJOY</span>
+                        <span th:if="${#sets.contains(plataformas, 'OLIVE')}" class="px-2 py-0.5 text-[10px] font-bold bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-300 rounded shadow-sm">OLIVE</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex flex-col items-end">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Semanas Cobradas</span>
+                <span class="text-2xl font-black text-slate-900 dark:text-white mt-1" th:text="${semanasCobradas + (semanasCobradas == 1 ? ' semana' : ' semanas')}">0 semanas</span>
+            </div>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <!-- Total Acumulado -->
+            <div class="bg-white dark:bg-gray-800 p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm">
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Acumulado</p>
+                <p class="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-2 font-mono" th:text="${'$' + #numbers.formatDecimal(totalAcumulado, 1, 2)}">$0.00</p>
+            </div>
+            <!-- Total SALSA -->
+            <div class="bg-white dark:bg-gray-800 p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm">
+                <p class="text-xs font-bold text-amber-600 uppercase tracking-widest">Total SALSA</p>
+                <p class="text-3xl font-black text-slate-900 dark:text-white mt-2 font-mono" th:text="${'$' + #numbers.formatDecimal(totalSalsa, 1, 2)}">$0.00</p>
+            </div>
+            <!-- Total LIVEJOY -->
+            <div class="bg-white dark:bg-gray-800 p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm">
+                <p class="text-xs font-bold text-purple-600 uppercase tracking-widest">Total LIVEJOY</p>
+                <p class="text-3xl font-black text-slate-900 dark:text-white mt-2 font-mono" th:text="${'$' + #numbers.formatDecimal(totalLivejoy, 1, 2)}">$0.00</p>
+            </div>
+            <!-- Total OLIVE -->
+            <div class="bg-white dark:bg-gray-800 p-5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm">
+                <p class="text-xs font-bold text-green-600 uppercase tracking-widest">Total OLIVE</p>
+                <p class="text-3xl font-black text-slate-900 dark:text-white mt-2 font-mono" th:text="${'$' + #numbers.formatDecimal(totalOlive, 1, 2)}">$0.00</p>
+            </div>
+        </div>
+
+        <!-- Detail Table -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-5 border-b border-slate-200 dark:border-gray-700">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white">Desglose de Ingresos por Período</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Listado detallado de todas las semanas registradas en el histórico.</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full border-collapse">
+                    <thead class="bg-slate-100 dark:bg-gray-700/50 text-slate-700 dark:text-slate-200">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider border-b border-slate-200 dark:border-gray-700">Período</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider border-b border-slate-200 dark:border-gray-700">Plataforma</th>
+                            <th class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider border-b border-slate-200 dark:border-gray-700">Monedas / Puntos</th>
+                            <th class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider border-b border-slate-200 dark:border-gray-700">Monto Calculado ($)</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider border-b border-slate-200 dark:border-gray-700">Fecha de Registro</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-slate-200 dark:divide-gray-700">
+                        <tr th:each="item : ${timeline}" class="hover:bg-slate-50 dark:hover:bg-gray-750 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-950 dark:text-slate-100" th:text="${item.periodo}">Semana 1</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span th:if="${item.plataforma == 'SALSA'}" class="px-2 py-0.5 text-xs font-bold bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 rounded shadow-sm">SALSA</span>
+                                <span th:if="${item.plataforma == 'LIVEJOY'}" class="px-2 py-0.5 text-xs font-bold bg-purple-100 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 rounded shadow-sm">LIVEJOY</span>
+                                <span th:if="${item.plataforma == 'OLIVE'}" class="px-2 py-0.5 text-xs font-bold bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-300 rounded shadow-sm">OLIVE</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-mono font-medium text-slate-600 dark:text-slate-400" 
+                                th:text="${#numbers.formatDecimal(item.monedas, 1, 2)}">0.00</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-mono font-bold text-emerald-600 dark:text-emerald-400" 
+                                th:text="${'$' + #numbers.formatDecimal(item.monto, 1, 2)}">$0.00</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-500 dark:text-slate-400" 
+                                th:text="${#temporals.format(item.fecha, 'dd/MM/yyyy HH:mm')}">15/06/2026</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Dark mode toggle
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        darkModeToggle.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+        });
+    </script>
+</body>
+</html>

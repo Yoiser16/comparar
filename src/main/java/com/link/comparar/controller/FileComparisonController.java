@@ -14,6 +14,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.SessionAttribute;
@@ -682,11 +683,60 @@ public class FileComparisonController {
      * Muestra la página del histórico de ingresos
      */
     @GetMapping("/historico")
-    public String verHistorico(Model model) {
+    public String verHistorico(
+            @RequestParam(value = "tab", required = false) String tab,
+            @RequestParam(value = "compPA", required = false) String compPA,
+            @RequestParam(value = "compPB", required = false) String compPB,
+            Model model) {
         List<HistoricoIngreso> registros = historicoService.obtenerTodosLosRegistros();
         List<String> periodosDisponibles = historicoService.obtenerPeriodosDisponibles();
 
         prepararDatosHistoricoPorSheet(model, registros, periodosDisponibles, null);
+
+        // Activar pestaña por defecto
+        model.addAttribute("activeTab", tab != null ? tab.trim().toLowerCase() : "consolidado");
+
+        // Si hay una comparación activa
+        if (compPA != null && !compPA.trim().isEmpty() && compPB != null && !compPB.trim().isEmpty() && tab != null) {
+            String pA = compPA.trim();
+            String pB = compPB.trim();
+            String activeTab = tab.trim().toLowerCase();
+            model.addAttribute("compPA", pA);
+            model.addAttribute("compPB", pB);
+            model.addAttribute("compararActive", true);
+
+            if ("salsa".equals(activeTab)) {
+                List<SalsaComparacion> comparacion = obtenerComparacionSalsa(pA, pB);
+                model.addAttribute("salsaComparacion", comparacion);
+                double totalA = comparacion.stream().mapToDouble(SalsaComparacion::getTutoraA).sum();
+                double totalB = comparacion.stream().mapToDouble(SalsaComparacion::getTutoraB).sum();
+                model.addAttribute("compSalsaTotalA", totalA);
+                model.addAttribute("compSalsaTotalB", totalB);
+                model.addAttribute("compSalsaTotalDiff", totalB - totalA);
+                model.addAttribute("compSalsaTotalSuma", totalA + totalB);
+            } else if ("livejoy".equals(activeTab)) {
+                List<LivejoyComparacion> comparacion = obtenerComparacionLivejoy(pA, pB);
+                model.addAttribute("livejoyComparacion", comparacion);
+                double totalA = comparacion.stream().mapToDouble(LivejoyComparacion::getTutoraA).sum();
+                double totalB = comparacion.stream().mapToDouble(LivejoyComparacion::getTutoraB).sum();
+                model.addAttribute("compLivejoyTotalA", totalA);
+                model.addAttribute("compLivejoyTotalB", totalB);
+                model.addAttribute("compLivejoyTotalDiff", totalB - totalA);
+                model.addAttribute("compLivejoyTotalSuma", totalA + totalB);
+            } else if ("olive".equals(activeTab)) {
+                List<OliveComparacion> comparacion = obtenerComparacionOlive(pA, pB);
+                model.addAttribute("oliveComparacion", comparacion);
+                double totalA = comparacion.stream().mapToDouble(OliveComparacion::getTotalA).sum();
+                double totalB = comparacion.stream().mapToDouble(OliveComparacion::getTotalB).sum();
+                model.addAttribute("compOliveTotalA", totalA);
+                model.addAttribute("compOliveTotalB", totalB);
+                model.addAttribute("compOliveTotalDiff", totalB - totalA);
+                model.addAttribute("compOliveTotalSuma", totalA + totalB);
+            }
+        } else {
+            model.addAttribute("compararActive", false);
+        }
+
         return "historico";
     }
 
@@ -732,6 +782,88 @@ public class FileComparisonController {
         prepararDatosHistoricoPorSheet(model, registros, periodosDisponibles, null);
         model.addAttribute("query", query);
         return "historico";
+    }
+
+    /**
+     * Muestra el detalle histórico de un usuario específico
+     */
+    @GetMapping("/historico/usuario/{id}")
+    public String verDetalleUsuario(
+            @PathVariable("id") String id,
+            Model model) {
+        
+        List<HistoricoIngreso> registros = historicoService.buscarPorIdentificacion(id.trim());
+        
+        if (registros.isEmpty()) {
+            model.addAttribute("error", "No se encontraron registros para el usuario con ID: " + id);
+            return "redirect:/historico";
+        }
+        
+        String nombreUsuario = registros.get(0).getNombreCompleto();
+        
+        // Calcular totales por plataforma y totales acumulados
+        double totalSalsa = 0.0;
+        double totalLivejoy = 0.0;
+        double totalOlive = 0.0;
+        double totalAcumulado = 0.0;
+        int semanasCobradas = 0;
+        Set<String> plataformas = new java.util.HashSet<>();
+        
+        List<Map<String, Object>> timeline = new ArrayList<>();
+        
+        for (HistoricoIngreso reg : registros) {
+            String sheet = normalizeSheet(reg.getSheet());
+            plataformas.add(sheet);
+            
+            double valor = 0.0;
+            double coins = 0.0;
+            if ("SALSA".equals(sheet)) {
+                double ba = reg.getBonoAgencia() != null ? reg.getBonoAgencia() : 0.0;
+                double bt = reg.getBonusTop100() != null ? reg.getBonusTop100() : 0.0;
+                valor = (ba * 0.40) + (bt * 0.40);
+                coins = reg.getTotalMonedas() != null ? reg.getTotalMonedas() : 0.0;
+                totalSalsa += valor;
+            } else if ("LIVEJOY".equals(sheet)) {
+                double ing = reg.getMonedas() != null ? reg.getMonedas() : 0.0;
+                valor = ing * 0.12 * 0.40;
+                coins = ing;
+                totalLivejoy += valor;
+            } else if ("OLIVE".equals(sheet)) {
+                coins = reg.getTotalMonedas() != null ? reg.getTotalMonedas() : (reg.getMonedas() != null ? reg.getMonedas() : 0.0);
+                double ba = reg.getBonoAgencia() != null ? reg.getBonoAgencia() : 0.0;
+                double rec = reg.getRecompensaEvento() != null ? reg.getRecompensaEvento() : 0.0;
+                valor = ba + rec;
+                totalOlive += valor;
+            }
+            
+            if (valor > 0.0) {
+                semanasCobradas++;
+                totalAcumulado += valor;
+            }
+            
+            Map<String, Object> item = new HashMap<>();
+            item.put("periodo", reg.getPeriodoComparacion());
+            item.put("plataforma", sheet);
+            item.put("monedas", coins);
+            item.put("monto", valor);
+            item.put("fecha", reg.getFechaRegistro());
+            timeline.add(item);
+        }
+        
+        // Ordenar timeline por período/fecha descendente
+        timeline.sort((a, b) -> ((java.time.LocalDateTime) b.get("fecha")).compareTo((java.time.LocalDateTime) a.get("fecha")));
+        
+        model.addAttribute("usuarioId", id);
+        model.addAttribute("nombreUsuario", nombreUsuario);
+        model.addAttribute("plataformas", plataformas);
+        model.addAttribute("totalSalsa", totalSalsa);
+        model.addAttribute("totalLivejoy", totalLivejoy);
+        model.addAttribute("totalOlive", totalOlive);
+        model.addAttribute("totalAcumulado", totalAcumulado);
+        model.addAttribute("semanasCobradas", semanasCobradas);
+        model.addAttribute("timeline", timeline);
+        
+        return "historico-detalle-usuario";
     }
 
     /**
@@ -893,7 +1025,7 @@ public class FileComparisonController {
         totalNumberStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 
         Sheet salsaSheet = workbook.createSheet("SALSA");
-        String[] salsaHeaders = { "ID", "Nombre", "Total Coins", "Tutora" };
+        String[] salsaHeaders = { "ID", "Nombre", "Total Coins", "Tutora", "Tutora (Archivo)" };
         Row salsaHeaderRow = salsaSheet.createRow(0);
         for (int i = 0; i < salsaHeaders.length; i++) {
             org.apache.poi.ss.usermodel.Cell cell = salsaHeaderRow.createCell(i);
@@ -902,7 +1034,7 @@ public class FileComparisonController {
         }
 
         Sheet livejoySheet = workbook.createSheet("LIVEJOY");
-        String[] livejoyHeaders = { "ID LIVEJOY", "Usuario", "Monto Dólares", "Nombre Streamers", "Tutora" };
+        String[] livejoyHeaders = { "ID LIVEJOY", "Usuario", "Monto Dólares", "Nombre Streamers", "Tutora", "Tutora (Archivo)" };
         Row livejoyHeaderRow = livejoySheet.createRow(0);
         for (int i = 0; i < livejoyHeaders.length; i++) {
             org.apache.poi.ss.usermodel.Cell cell = livejoyHeaderRow.createCell(i);
@@ -911,7 +1043,7 @@ public class FileComparisonController {
         }
 
         Sheet oliveSheet = workbook.createSheet("OLIVE");
-        String[] oliveHeaders = { "ID", "Nombre", "Monedas", "Total Monedas", "Bono Agencia", "Recompensa", "País" };
+        String[] oliveHeaders = { "ID", "Nombre", "Monedas", "Total Monedas", "Bono Agencia", "Recompensa", "País", "Tutora (Archivo)" };
         Row oliveHeaderRow = oliveSheet.createRow(0);
         for (int i = 0; i < oliveHeaders.length; i++) {
             org.apache.poi.ss.usermodel.Cell cell = oliveHeaderRow.createCell(i);
@@ -948,6 +1080,7 @@ public class FileComparisonController {
                 row.getCell(2).setCellStyle(numberStyle);
                 row.createCell(3).setCellValue(tutora);
                 row.getCell(3).setCellStyle(numberStyle);
+                row.createCell(4).setCellValue(registro.getNombreTutora() != null ? registro.getNombreTutora() : "-");
 
                 salsaTotalCoins += totalCoins;
                 salsaTotalTutora += tutora;
@@ -963,6 +1096,7 @@ public class FileComparisonController {
                 row.createCell(3).setCellValue(registro.getNombreCompleto() != null ? registro.getNombreCompleto() : "");
                 row.createCell(4).setCellValue(tutora);
                 row.getCell(4).setCellStyle(numberStyle);
+                row.createCell(5).setCellValue(registro.getNombreTutora() != null ? registro.getNombreTutora() : "-");
 
                 livejoyTotalMonto += ingresos;
                 livejoyTotalTutora += tutora;
@@ -985,6 +1119,7 @@ public class FileComparisonController {
                 row.createCell(5).setCellValue(recompensa);
                 row.getCell(5).setCellStyle(numberStyle);
                 row.createCell(6).setCellValue(registro.getPais() != null ? registro.getPais() : "");
+                row.createCell(7).setCellValue(registro.getNombreTutora() != null ? registro.getNombreTutora() : "-");
 
                 oliveTotalMonedas += monedas;
                 oliveTotalMonedasGeneral += totalMonedas;
@@ -1234,6 +1369,7 @@ public class FileComparisonController {
                 data.put("totalCoins", registro.getTotalMonedas() != null ? registro.getTotalMonedas() : 0.0);
                 data.put("periodo", registro.getPeriodoComparacion());
                 data.put("fechaRegistro", registro.getFechaRegistro());
+                data.put("nombreTutora", registro.getNombreTutora() != null ? registro.getNombreTutora() : "-");
                 
                 // Calcular Tutora: (Bono de Agencia - 60%) + (Bonus Top 100 - 60%)
                 double bonoAgencia = registro.getBonoAgencia() != null ? registro.getBonoAgencia() : 0.0;
@@ -1252,6 +1388,7 @@ public class FileComparisonController {
                 data.put("nombreStreamers", registro.getNombreCompleto());
                 data.put("periodo", registro.getPeriodoComparacion());
                 data.put("fechaRegistro", registro.getFechaRegistro());
+                data.put("nombreTutora", registro.getNombreTutora() != null ? registro.getNombreTutora() : "-");
                 
                 // Calcular Tutora: Ingresos * 12% * 40%
                 double ingresos = registro.getMonedas() != null ? registro.getMonedas() : 0.0;
@@ -1270,6 +1407,7 @@ public class FileComparisonController {
                 data.put("pais", registro.getPais());
                 data.put("periodo", registro.getPeriodoComparacion());
                 data.put("fechaRegistro", registro.getFechaRegistro());
+                data.put("nombreTutora", registro.getNombreTutora() != null ? registro.getNombreTutora() : "-");
                 
                 oliveRecords.add(data);
             }
@@ -1316,6 +1454,150 @@ public class FileComparisonController {
         model.addAttribute("registros", registros);
         model.addAttribute("periodosDisponibles", periodosDisponibles);
         model.addAttribute("periodoSeleccionado", periodoSeleccionado);
+
+        // Consolidado General
+        List<String> periodosOrdenados = new ArrayList<>(periodosDisponibles);
+        java.util.Collections.reverse(periodosOrdenados);
+
+        Map<String, ConsolidadoPersona> consolidadoMap = new java.util.LinkedHashMap<>();
+        for (HistoricoIngreso registro : registros) {
+            String id = registro.getIdentificacion();
+            if (id == null || id.trim().isEmpty()) continue;
+            
+            String normalizedId = id.trim();
+            ConsolidadoPersona persona = consolidadoMap.computeIfAbsent(normalizedId, k -> {
+                String nombre = registro.getNombreCompleto();
+                return new ConsolidadoPersona(normalizedId, nombre != null ? nombre : "Sin nombre");
+            });
+            
+            if ("Sin nombre".equals(persona.getNombreCompleto()) && registro.getNombreCompleto() != null && !registro.getNombreCompleto().isEmpty()) {
+                persona.nombreCompleto = registro.getNombreCompleto();
+            }
+
+            String sheet = normalizeSheet(registro.getSheet());
+            persona.agregarIngreso(
+                registro.getPeriodoComparacion(),
+                sheet,
+                registro.getMonedas(),
+                registro.getTotalMonedas(),
+                registro.getBonoAgencia(),
+                registro.getBonusTop100(),
+                registro.getRecompensaEvento()
+            );
+        }
+
+        List<ConsolidadoPersona> consolidadoRecords = new ArrayList<>(consolidadoMap.values());
+        consolidadoRecords.sort((a, b) -> Double.compare(b.getTotalAcumulado(), a.getTotalAcumulado()));
+
+        model.addAttribute("consolidadoRecords", consolidadoRecords);
+        model.addAttribute("periodosOrdenados", periodosOrdenados);
+    }
+
+    /**
+     * Descarga el Consolidado General en formato Excel
+     */
+    @GetMapping("/historico/descargar/excel-consolidado")
+    public ResponseEntity<byte[]> descargarExcelConsolidado() throws Exception {
+        List<HistoricoIngreso> registros = historicoService.obtenerTodosLosRegistros();
+        List<String> periodosDisponibles = historicoService.obtenerPeriodosDisponibles();
+        List<String> periodosOrdenados = new ArrayList<>(periodosDisponibles);
+        java.util.Collections.reverse(periodosOrdenados);
+
+        Map<String, ConsolidadoPersona> consolidadoMap = new java.util.LinkedHashMap<>();
+        for (HistoricoIngreso registro : registros) {
+            String id = registro.getIdentificacion();
+            if (id == null || id.trim().isEmpty()) continue;
+            String normalizedId = id.trim();
+            ConsolidadoPersona persona = consolidadoMap.computeIfAbsent(normalizedId, k -> {
+                String nombre = registro.getNombreCompleto();
+                return new ConsolidadoPersona(normalizedId, nombre != null ? nombre : "Sin nombre");
+            });
+            if ("Sin nombre".equals(persona.getNombreCompleto()) && registro.getNombreCompleto() != null && !registro.getNombreCompleto().isEmpty()) {
+                persona.nombreCompleto = registro.getNombreCompleto();
+            }
+            persona.agregarIngreso(
+                registro.getPeriodoComparacion(),
+                normalizeSheet(registro.getSheet()),
+                registro.getMonedas(),
+                registro.getTotalMonedas(),
+                registro.getBonoAgencia(),
+                registro.getBonusTop100(),
+                registro.getRecompensaEvento()
+            );
+        }
+
+        List<ConsolidadoPersona> consolidadoRecords = new ArrayList<>(consolidadoMap.values());
+        consolidadoRecords.sort((a, b) -> Double.compare(b.getTotalAcumulado(), a.getTotalAcumulado()));
+
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("Consolidado General");
+
+        CellStyle headerStyle = workbook.createCellStyle();
+        Font headerFont = workbook.createFont();
+        headerFont.setBold(true);
+        headerStyle.setFont(headerFont);
+        headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        DataFormat dataFormat = workbook.createDataFormat();
+        CellStyle numberStyle = workbook.createCellStyle();
+        numberStyle.setDataFormat(dataFormat.getFormat("#,##0.00"));
+
+        Row headerRow = sheet.createRow(0);
+        int colIndex = 0;
+        headerRow.createCell(colIndex++).setCellValue("ID");
+        headerRow.createCell(colIndex++).setCellValue("Nombre Completo");
+        headerRow.createCell(colIndex++).setCellValue("Plataformas");
+        headerRow.createCell(colIndex++).setCellValue("Semanas Cobradas");
+        headerRow.createCell(colIndex++).setCellValue("Total Acumulado ($)");
+
+        for (String per : periodosOrdenados) {
+            headerRow.createCell(colIndex++).setCellValue(per);
+        }
+
+        for (int i = 0; i < colIndex; i++) {
+            headerRow.getCell(i).setCellStyle(headerStyle);
+        }
+
+        int rowNum = 1;
+        for (ConsolidadoPersona persona : consolidadoRecords) {
+            Row row = sheet.createRow(rowNum++);
+            int cIndex = 0;
+            row.createCell(cIndex++).setCellValue(persona.getIdentificacion());
+            row.createCell(cIndex++).setCellValue(persona.getNombreCompleto());
+            row.createCell(cIndex++).setCellValue(String.join(", ", persona.getPlataformas()));
+            row.createCell(cIndex++).setCellValue(persona.getSemanasCobradas());
+            
+            org.apache.poi.ss.usermodel.Cell totalCell = row.createCell(cIndex++);
+            totalCell.setCellValue(persona.getTotalAcumulado());
+            totalCell.setCellStyle(numberStyle);
+
+            for (String per : periodosOrdenados) {
+                Double monto = persona.getIngresosPorPeriodo().get(per);
+                org.apache.poi.ss.usermodel.Cell cell = row.createCell(cIndex++);
+                if (monto != null && monto > 0.0) {
+                    cell.setCellValue(monto);
+                    cell.setCellStyle(numberStyle);
+                } else {
+                    cell.setCellValue("-");
+                }
+            }
+        }
+
+        for (int i = 0; i < colIndex; i++) {
+            sheet.autoSizeColumn(i);
+        }
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        workbook.write(baos);
+        workbook.close();
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(
+                MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        httpHeaders.setContentDispositionFormData("attachment", "consolidado_general.xlsx");
+
+        return ResponseEntity.ok().headers(httpHeaders).body(baos.toByteArray());
     }
 
     private boolean isRecordFromSheet(FileRecord record, String expectedSheet) {
@@ -1334,4 +1616,719 @@ public class FileComparisonController {
         }
         return sheet.trim().toUpperCase();
     }
+
+    /**
+     * DTO para representar el consolidado por persona en el histórico
+     */
+    public static class ConsolidadoPersona {
+        private String identificacion;
+        private String nombreCompleto;
+        private Set<String> plataformas = new java.util.LinkedHashSet<>();
+        private Map<String, Double> ingresosPorPeriodo = new java.util.HashMap<>();
+        private Map<String, Double> monedasPorPeriodo = new java.util.HashMap<>();
+        private int semanasCobradas = 0;
+        private double totalAcumulado = 0.0;
+
+        public ConsolidadoPersona(String identificacion, String nombreCompleto) {
+            this.identificacion = identificacion;
+            this.nombreCompleto = nombreCompleto;
+        }
+
+        public String getIdentificacion() { return identificacion; }
+        public String getNombreCompleto() { return nombreCompleto; }
+        public Set<String> getPlataformas() { return plataformas; }
+        public Map<String, Double> getIngresosPorPeriodo() { return ingresosPorPeriodo; }
+        public Map<String, Double> getMonedasPorPeriodo() { return monedasPorPeriodo; }
+        public int getSemanasCobradas() { return semanasCobradas; }
+        public double getTotalAcumulado() { return totalAcumulado; }
+
+        public void agregarIngreso(String periodo, String sheet, Double monedas, Double totalMonedas, Double bonoAgencia, Double bonusTop100, Double recompensa) {
+            this.plataformas.add(sheet);
+            
+            double valor = 0.0;
+            double coins = 0.0;
+            if ("SALSA".equals(sheet)) {
+                double ba = bonoAgencia != null ? bonoAgencia : 0.0;
+                double bt = bonusTop100 != null ? bonusTop100 : 0.0;
+                valor = (ba * 0.40) + (bt * 0.40);
+                coins = totalMonedas != null ? totalMonedas : 0.0;
+            } else if ("LIVEJOY".equals(sheet)) {
+                double ing = monedas != null ? monedas : 0.0;
+                valor = ing * 0.12 * 0.40;
+                coins = ing;
+            } else if ("OLIVE".equals(sheet)) {
+                coins = totalMonedas != null ? totalMonedas : (monedas != null ? monedas : 0.0);
+                double ba = bonoAgencia != null ? bonoAgencia : 0.0;
+                double rec = recompensa != null ? recompensa : 0.0;
+                valor = ba + rec;
+            }
+
+            if (valor > 0.0) {
+                this.ingresosPorPeriodo.put(periodo, this.ingresosPorPeriodo.getOrDefault(periodo, 0.0) + valor);
+            }
+            if (coins > 0.0) {
+                this.monedasPorPeriodo.put(periodo, this.monedasPorPeriodo.getOrDefault(periodo, 0.0) + coins);
+            }
+            
+            recalcularTotales();
+        }
+
+        public void recalcularTotales() {
+            this.totalAcumulado = this.ingresosPorPeriodo.values().stream().mapToDouble(Double::doubleValue).sum();
+            this.semanasCobradas = (int) this.ingresosPorPeriodo.entrySet().stream()
+                    .filter(e -> e.getValue() > 0.0)
+                    .count();
+        }
+    }
+
+    /**
+     * DTOs para comparaciones de periodos por plataforma
+     */
+    public static class SalsaComparacion {
+        private String id;
+        private String nombre;
+        private String nombreTutora = "-";
+        private double coinsA;
+        private double coinsB;
+        private double tutoraA;
+        private double tutoraB;
+
+        public SalsaComparacion(String id, String nombre) {
+            this.id = id;
+            this.nombre = nombre;
+        }
+
+        public String getId() { return id; }
+        public String getNombre() { return nombre; }
+        public String getNombreTutora() { return nombreTutora; }
+        public void setNombreTutora(String nombreTutora) { this.nombreTutora = nombreTutora; }
+        public double getCoinsA() { return coinsA; }
+        public void setCoinsA(double coinsA) { this.coinsA = coinsA; }
+        public double getCoinsB() { return coinsB; }
+        public void setCoinsB(double coinsB) { this.coinsB = coinsB; }
+        public double getTutoraA() { return tutoraA; }
+        public void setTutoraA(double tutoraA) { this.tutoraA = tutoraA; }
+        public double getTutoraB() { return tutoraB; }
+        public void setTutoraB(double tutoraB) { this.tutoraB = tutoraB; }
+        public double getDiffTutora() { return tutoraB - tutoraA; }
+        public double getTotalTutora() { return tutoraA + tutoraB; }
+    }
+
+    public static class LivejoyComparacion {
+        private String id;
+        private String usuario;
+        private String nombreTutora = "-";
+        private double montoDolaresA;
+        private double montoDolaresB;
+        private double tutoraA;
+        private double tutoraB;
+
+        public LivejoyComparacion(String id, String usuario) {
+            this.id = id;
+            this.usuario = usuario;
+        }
+
+        public String getId() { return id; }
+        public String getUsuario() { return usuario; }
+        public String getNombreTutora() { return nombreTutora; }
+        public void setNombreTutora(String nombreTutora) { this.nombreTutora = nombreTutora; }
+        public double getMontoDolaresA() { return montoDolaresA; }
+        public void setMontoDolaresA(double montoDolaresA) { this.montoDolaresA = montoDolaresA; }
+        public double getMontoDolaresB() { return montoDolaresB; }
+        public void setMontoDolaresB(double montoDolaresB) { this.montoDolaresB = montoDolaresB; }
+        public double getTutoraA() { return tutoraA; }
+        public void setTutoraA(double tutoraA) { this.tutoraA = tutoraA; }
+        public double getTutoraB() { return tutoraB; }
+        public void setTutoraB(double tutoraB) { this.tutoraB = tutoraB; }
+        public double getDiffTutora() { return tutoraB - tutoraA; }
+        public double getTotalTutora() { return tutoraA + tutoraB; }
+    }
+
+    public static class OliveComparacion {
+        private String id;
+        private String nombre;
+        private String nombreTutora = "-";
+        private double totalMonedasA;
+        private double totalMonedasB;
+        private double bonoAgenciaA;
+        private double bonoAgenciaB;
+        private double recompensaA;
+        private double recompensaB;
+        private double totalA;
+        private double totalB;
+
+        public OliveComparacion(String id, String nombre) {
+            this.id = id;
+            this.nombre = nombre;
+        }
+
+        public String getId() { return id; }
+        public String getNombre() { return nombre; }
+        public String getNombreTutora() { return nombreTutora; }
+        public void setNombreTutora(String nombreTutora) { this.nombreTutora = nombreTutora; }
+        public double getTotalMonedasA() { return totalMonedasA; }
+        public void setTotalMonedasA(double totalMonedasA) { this.totalMonedasA = totalMonedasA; }
+        public double getTotalMonedasB() { return totalMonedasB; }
+        public void setTotalMonedasB(double totalMonedasB) { this.totalMonedasB = totalMonedasB; }
+        public double getBonoAgenciaA() { return bonoAgenciaA; }
+        public void setBonoAgenciaA(double bonoAgenciaA) { this.bonoAgenciaA = bonoAgenciaA; }
+        public double getBonoAgenciaB() { return bonoAgenciaB; }
+        public void setBonoAgenciaB(double bonoAgenciaB) { this.bonoAgenciaB = bonoAgenciaB; }
+        public double getRecompensaA() { return recompensaA; }
+        public void setRecompensaA(double recompensaA) { this.recompensaA = recompensaA; }
+        public double getRecompensaB() { return recompensaB; }
+        public void setRecompensaB(double recompensaB) { this.recompensaB = recompensaB; }
+        public double getTotalA() { return totalA; }
+        public void setTotalA(double totalA) { this.totalA = totalA; }
+        public double getTotalB() { return totalB; }
+        public void setTotalB(double totalB) { this.totalB = totalB; }
+        public double getDiffTotal() { return totalB - totalA; }
+        public double getTotalConsolidado() { return totalA + totalB; }
+    }
+
+    private List<SalsaComparacion> obtenerComparacionSalsa(String pA, String pB) {
+        List<HistoricoIngreso> regA = historicoService.buscarPorPeriodo(pA);
+        List<HistoricoIngreso> regB = historicoService.buscarPorPeriodo(pB);
+
+        Map<String, SalsaComparacion> map = new HashMap<>();
+        for (HistoricoIngreso r : regA) {
+            if ("SALSA".equals(normalizeSheet(r.getSheet()))) {
+                SalsaComparacion sc = map.computeIfAbsent(r.getIdentificacion(), k -> new SalsaComparacion(r.getIdentificacion(), r.getNombreCompleto()));
+                if (r.getNombreTutora() != null && !r.getNombreTutora().isEmpty() && !"-".equals(r.getNombreTutora())) {
+                    sc.setNombreTutora(r.getNombreTutora());
+                }
+                double ba = r.getBonoAgencia() != null ? r.getBonoAgencia() : 0.0;
+                double bt = r.getBonusTop100() != null ? r.getBonusTop100() : 0.0;
+                double coins = r.getTotalMonedas() != null ? r.getTotalMonedas() : 0.0;
+                double val = (ba * 0.40) + (bt * 0.40);
+                if (coins > 0.0 || val > 0.0) {
+                    sc.setCoinsA(sc.getCoinsA() + coins);
+                    sc.setTutoraA(sc.getTutoraA() + val);
+                }
+            }
+        }
+        for (HistoricoIngreso r : regB) {
+            if ("SALSA".equals(normalizeSheet(r.getSheet()))) {
+                SalsaComparacion sc = map.computeIfAbsent(r.getIdentificacion(), k -> new SalsaComparacion(r.getIdentificacion(), r.getNombreCompleto()));
+                if (r.getNombreTutora() != null && !r.getNombreTutora().isEmpty() && !"-".equals(r.getNombreTutora())) {
+                    sc.setNombreTutora(r.getNombreTutora());
+                }
+                double ba = r.getBonoAgencia() != null ? r.getBonoAgencia() : 0.0;
+                double bt = r.getBonusTop100() != null ? r.getBonusTop100() : 0.0;
+                double coins = r.getTotalMonedas() != null ? r.getTotalMonedas() : 0.0;
+                double val = (ba * 0.40) + (bt * 0.40);
+                if (coins > 0.0 || val > 0.0) {
+                    sc.setCoinsB(sc.getCoinsB() + coins);
+                    sc.setTutoraB(sc.getTutoraB() + val);
+                }
+            }
+        }
+        List<SalsaComparacion> list = new ArrayList<>(map.values());
+        list.sort((x, y) -> x.getNombre().compareToIgnoreCase(y.getNombre()));
+        return list;
+    }
+
+    private List<LivejoyComparacion> obtenerComparacionLivejoy(String pA, String pB) {
+        List<HistoricoIngreso> regA = historicoService.buscarPorPeriodo(pA);
+        List<HistoricoIngreso> regB = historicoService.buscarPorPeriodo(pB);
+
+        Map<String, LivejoyComparacion> map = new HashMap<>();
+        for (HistoricoIngreso r : regA) {
+            if ("LIVEJOY".equals(normalizeSheet(r.getSheet()))) {
+                LivejoyComparacion lc = map.computeIfAbsent(r.getIdentificacion(), k -> new LivejoyComparacion(r.getIdentificacion(), r.getNombreCompleto()));
+                if (r.getNombreTutora() != null && !r.getNombreTutora().isEmpty() && !"-".equals(r.getNombreTutora())) {
+                    lc.setNombreTutora(r.getNombreTutora());
+                }
+                double ing = r.getMonedas() != null ? r.getMonedas() : 0.0;
+                double val = ing * 0.12 * 0.40;
+                if (ing > 0.0 || val > 0.0) {
+                    lc.setMontoDolaresA(lc.getMontoDolaresA() + ing);
+                    lc.setTutoraA(lc.getTutoraA() + val);
+                }
+            }
+        }
+        for (HistoricoIngreso r : regB) {
+            if ("LIVEJOY".equals(normalizeSheet(r.getSheet()))) {
+                LivejoyComparacion lc = map.computeIfAbsent(r.getIdentificacion(), k -> new LivejoyComparacion(r.getIdentificacion(), r.getNombreCompleto()));
+                if (r.getNombreTutora() != null && !r.getNombreTutora().isEmpty() && !"-".equals(r.getNombreTutora())) {
+                    lc.setNombreTutora(r.getNombreTutora());
+                }
+                double ing = r.getMonedas() != null ? r.getMonedas() : 0.0;
+                double val = ing * 0.12 * 0.40;
+                if (ing > 0.0 || val > 0.0) {
+                    lc.setMontoDolaresB(lc.getMontoDolaresB() + ing);
+                    lc.setTutoraB(lc.getTutoraB() + val);
+                }
+            }
+        }
+        List<LivejoyComparacion> list = new ArrayList<>(map.values());
+        list.sort((x, y) -> x.getUsuario().compareToIgnoreCase(y.getUsuario()));
+        return list;
+    }
+
+    private List<OliveComparacion> obtenerComparacionOlive(String pA, String pB) {
+        List<HistoricoIngreso> regA = historicoService.buscarPorPeriodo(pA);
+        List<HistoricoIngreso> regB = historicoService.buscarPorPeriodo(pB);
+
+        Map<String, OliveComparacion> map = new HashMap<>();
+        for (HistoricoIngreso r : regA) {
+            if ("OLIVE".equals(normalizeSheet(r.getSheet()))) {
+                OliveComparacion oc = map.computeIfAbsent(r.getIdentificacion(), k -> new OliveComparacion(r.getIdentificacion(), r.getNombreCompleto()));
+                if (r.getNombreTutora() != null && !r.getNombreTutora().isEmpty() && !"-".equals(r.getNombreTutora())) {
+                    oc.setNombreTutora(r.getNombreTutora());
+                }
+                double tm = r.getTotalMonedas() != null ? r.getTotalMonedas() : (r.getMonedas() != null ? r.getMonedas() : 0.0);
+                double ba = r.getBonoAgencia() != null ? r.getBonoAgencia() : 0.0;
+                double rec = r.getRecompensaEvento() != null ? r.getRecompensaEvento() : 0.0;
+                double val = ba + rec;
+                oc.setTotalMonedasA(oc.getTotalMonedasA() + tm);
+                oc.setBonoAgenciaA(oc.getBonoAgenciaA() + ba);
+                oc.setRecompensaA(oc.getRecompensaA() + rec);
+                oc.setTotalA(oc.getTotalA() + val);
+            }
+        }
+        for (HistoricoIngreso r : regB) {
+            if ("OLIVE".equals(normalizeSheet(r.getSheet()))) {
+                OliveComparacion oc = map.computeIfAbsent(r.getIdentificacion(), k -> new OliveComparacion(r.getIdentificacion(), r.getNombreCompleto()));
+                if (r.getNombreTutora() != null && !r.getNombreTutora().isEmpty() && !"-".equals(r.getNombreTutora())) {
+                    oc.setNombreTutora(r.getNombreTutora());
+                }
+                double tm = r.getTotalMonedas() != null ? r.getTotalMonedas() : (r.getMonedas() != null ? r.getMonedas() : 0.0);
+                double ba = r.getBonoAgencia() != null ? r.getBonoAgencia() : 0.0;
+                double rec = r.getRecompensaEvento() != null ? r.getRecompensaEvento() : 0.0;
+                double val = ba + rec;
+                oc.setTotalMonedasB(oc.getTotalMonedasB() + tm);
+                oc.setBonoAgenciaB(oc.getBonoAgenciaB() + ba);
+                oc.setRecompensaB(oc.getRecompensaB() + rec);
+                oc.setTotalB(oc.getTotalB() + val);
+            }
+        }
+        List<OliveComparacion> list = new ArrayList<>(map.values());
+        list.sort((x, y) -> x.getNombre().compareToIgnoreCase(y.getNombre()));
+        return list;
+    }
+
+    @GetMapping("/historico/descargar/comparar-salsa")
+    public ResponseEntity<byte[]> descargarCompararSalsaExcel(
+            @RequestParam("pA") String pA,
+            @RequestParam("pB") String pB) throws Exception {
+
+        List<SalsaComparacion> comparacion = obtenerComparacionSalsa(pA.trim(), pB.trim());
+
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("Comparativa SALSA");
+
+        CellStyle headerStyle = workbook.createCellStyle();
+        Font headerFont = workbook.createFont();
+        headerFont.setBold(true);
+        headerStyle.setFont(headerFont);
+        headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        DataFormat dataFormat = workbook.createDataFormat();
+        CellStyle numberStyle = workbook.createCellStyle();
+        numberStyle.setDataFormat(dataFormat.getFormat("#,##0.00"));
+
+        CellStyle totalLabelStyle = workbook.createCellStyle();
+        Font totalFont = workbook.createFont();
+        totalFont.setBold(true);
+        totalLabelStyle.setFont(totalFont);
+        totalLabelStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        totalLabelStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        CellStyle totalNumberStyle = workbook.createCellStyle();
+        totalNumberStyle.cloneStyleFrom(numberStyle);
+        totalNumberStyle.setFont(totalFont);
+        totalNumberStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        totalNumberStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        Row headerRow = sheet.createRow(0);
+        String[] headers = { "ID", "Nombre", "Coins " + pA, "Coins " + pB, "Tutora " + pA + " ($)", "Tutora " + pB + " ($)", "Variación ($)", "Total Consolidado ($)", "Tutora (Archivo)" };
+
+        for (int i = 0; i < headers.length; i++) {
+            org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        int rowNum = 1;
+        double totalCoinsA = 0.0;
+        double totalCoinsB = 0.0;
+        double totalTutoraA = 0.0;
+        double totalTutoraB = 0.0;
+        double totalDiff = 0.0;
+        double totalSuma = 0.0;
+
+        for (SalsaComparacion fila : comparacion) {
+            Row row = sheet.createRow(rowNum++);
+
+            row.createCell(0).setCellValue(fila.getId());
+            row.createCell(1).setCellValue(fila.getNombre());
+            
+            org.apache.poi.ss.usermodel.Cell cellCoinsA = row.createCell(2);
+            cellCoinsA.setCellValue(fila.getCoinsA());
+            cellCoinsA.setCellStyle(numberStyle);
+            
+            org.apache.poi.ss.usermodel.Cell cellCoinsB = row.createCell(3);
+            cellCoinsB.setCellValue(fila.getCoinsB());
+            cellCoinsB.setCellStyle(numberStyle);
+            
+            org.apache.poi.ss.usermodel.Cell cellTutA = row.createCell(4);
+            cellTutA.setCellValue(fila.getTutoraA());
+            cellTutA.setCellStyle(numberStyle);
+            
+            org.apache.poi.ss.usermodel.Cell cellTutB = row.createCell(5);
+            cellTutB.setCellValue(fila.getTutoraB());
+            cellTutB.setCellStyle(numberStyle);
+            
+            org.apache.poi.ss.usermodel.Cell cellDiff = row.createCell(6);
+            cellDiff.setCellValue(fila.getDiffTutora());
+            cellDiff.setCellStyle(numberStyle);
+            
+            org.apache.poi.ss.usermodel.Cell cellTotal = row.createCell(7);
+            cellTotal.setCellValue(fila.getTotalTutora());
+            cellTotal.setCellStyle(numberStyle);
+            
+            row.createCell(8).setCellValue(fila.getNombreTutora());
+
+            totalCoinsA += fila.getCoinsA();
+            totalCoinsB += fila.getCoinsB();
+            totalTutoraA += fila.getTutoraA();
+            totalTutoraB += fila.getTutoraB();
+            totalDiff += fila.getDiffTutora();
+            totalSuma += fila.getTotalTutora();
+        }
+
+        Row totalRow = sheet.createRow(rowNum);
+        totalRow.createCell(0).setCellValue("TOTAL");
+        totalRow.getCell(0).setCellStyle(totalLabelStyle);
+        totalRow.createCell(1).setCellValue("");
+        totalRow.getCell(1).setCellStyle(totalLabelStyle);
+
+        totalRow.createCell(2).setCellValue(totalCoinsA);
+        totalRow.getCell(2).setCellStyle(totalNumberStyle);
+        totalRow.createCell(3).setCellValue(totalCoinsB);
+        totalRow.getCell(3).setCellStyle(totalNumberStyle);
+        totalRow.createCell(4).setCellValue(totalTutoraA);
+        totalRow.getCell(4).setCellStyle(totalNumberStyle);
+        totalRow.createCell(5).setCellValue(totalTutoraB);
+        totalRow.getCell(5).setCellStyle(totalNumberStyle);
+        totalRow.createCell(6).setCellValue(totalDiff);
+        totalRow.getCell(6).setCellStyle(totalNumberStyle);
+        totalRow.createCell(7).setCellValue(totalSuma);
+        totalRow.getCell(7).setCellStyle(totalNumberStyle);
+
+        for (int i = 0; i < headers.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        workbook.write(baos);
+        workbook.close();
+
+        String filename = "salsa_comparativa_" + pA.replaceAll("\\s+", "_") + "_vs_" + pB.replaceAll("\\s+", "_") + ".xlsx";
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(
+                MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        httpHeaders.setContentDispositionFormData("attachment", filename);
+
+        return ResponseEntity.ok().headers(httpHeaders).body(baos.toByteArray());
+    }
+
+    @GetMapping("/historico/descargar/comparar-livejoy")
+    public ResponseEntity<byte[]> descargarCompararLivejoyExcel(
+            @RequestParam("pA") String pA,
+            @RequestParam("pB") String pB) throws Exception {
+
+        List<LivejoyComparacion> comparacion = obtenerComparacionLivejoy(pA.trim(), pB.trim());
+
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("Comparativa LIVEJOY");
+
+        CellStyle headerStyle = workbook.createCellStyle();
+        Font headerFont = workbook.createFont();
+        headerFont.setBold(true);
+        headerStyle.setFont(headerFont);
+        headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        DataFormat dataFormat = workbook.createDataFormat();
+        CellStyle numberStyle = workbook.createCellStyle();
+        numberStyle.setDataFormat(dataFormat.getFormat("#,##0.00"));
+
+        CellStyle totalLabelStyle = workbook.createCellStyle();
+        Font totalFont = workbook.createFont();
+        totalFont.setBold(true);
+        totalLabelStyle.setFont(totalFont);
+        totalLabelStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        totalLabelStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        CellStyle totalNumberStyle = workbook.createCellStyle();
+        totalNumberStyle.cloneStyleFrom(numberStyle);
+        totalNumberStyle.setFont(totalFont);
+        totalNumberStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        totalNumberStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        Row headerRow = sheet.createRow(0);
+        String[] headers = { "ID LIVEJOY", "Usuario", "Monto Dólares " + pA, "Monto Dólares " + pB, "Tutora " + pA + " ($)", "Tutora " + pB + " ($)", "Variación ($)", "Total Consolidado ($)", "Tutora (Archivo)" };
+
+        for (int i = 0; i < headers.length; i++) {
+            org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        int rowNum = 1;
+        double totalMontoA = 0.0;
+        double totalMontoB = 0.0;
+        double totalTutoraA = 0.0;
+        double totalTutoraB = 0.0;
+        double totalDiff = 0.0;
+        double totalSuma = 0.0;
+
+        for (LivejoyComparacion fila : comparacion) {
+            Row row = sheet.createRow(rowNum++);
+
+            row.createCell(0).setCellValue(fila.getId());
+            row.createCell(1).setCellValue(fila.getUsuario());
+            
+            org.apache.poi.ss.usermodel.Cell cellMonA = row.createCell(2);
+            cellMonA.setCellValue(fila.getMontoDolaresA());
+            cellMonA.setCellStyle(numberStyle);
+            
+            org.apache.poi.ss.usermodel.Cell cellMonB = row.createCell(3);
+            cellMonB.setCellValue(fila.getMontoDolaresB());
+            cellMonB.setCellStyle(numberStyle);
+            
+            org.apache.poi.ss.usermodel.Cell cellTutA = row.createCell(4);
+            cellTutA.setCellValue(fila.getTutoraA());
+            cellTutA.setCellStyle(numberStyle);
+            
+            org.apache.poi.ss.usermodel.Cell cellTutB = row.createCell(5);
+            cellTutB.setCellValue(fila.getTutoraB());
+            cellTutB.setCellStyle(numberStyle);
+            
+            org.apache.poi.ss.usermodel.Cell cellDiff = row.createCell(6);
+            cellDiff.setCellValue(fila.getDiffTutora());
+            cellDiff.setCellStyle(numberStyle);
+            
+            org.apache.poi.ss.usermodel.Cell cellTotal = row.createCell(7);
+            cellTotal.setCellValue(fila.getTotalTutora());
+            cellTotal.setCellStyle(numberStyle);
+            
+            row.createCell(8).setCellValue(fila.getNombreTutora());
+
+            totalMontoA += fila.getMontoDolaresA();
+            totalMontoB += fila.getMontoDolaresB();
+            totalTutoraA += fila.getTutoraA();
+            totalTutoraB += fila.getTutoraB();
+            totalDiff += fila.getDiffTutora();
+            totalSuma += fila.getTotalTutora();
+        }
+
+        Row totalRow = sheet.createRow(rowNum);
+        totalRow.createCell(0).setCellValue("TOTAL");
+        totalRow.getCell(0).setCellStyle(totalLabelStyle);
+        totalRow.createCell(1).setCellValue("");
+        totalRow.getCell(1).setCellStyle(totalLabelStyle);
+
+        totalRow.createCell(2).setCellValue(totalMontoA);
+        totalRow.getCell(2).setCellStyle(totalNumberStyle);
+        totalRow.createCell(3).setCellValue(totalMontoB);
+        totalRow.getCell(3).setCellStyle(totalNumberStyle);
+        totalRow.createCell(4).setCellValue(totalTutoraA);
+        totalRow.getCell(4).setCellStyle(totalNumberStyle);
+        totalRow.createCell(5).setCellValue(totalTutoraB);
+        totalRow.getCell(5).setCellStyle(totalNumberStyle);
+        totalRow.createCell(6).setCellValue(totalDiff);
+        totalRow.getCell(6).setCellStyle(totalNumberStyle);
+        totalRow.createCell(7).setCellValue(totalSuma);
+        totalRow.getCell(7).setCellStyle(totalNumberStyle);
+
+        for (int i = 0; i < headers.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        workbook.write(baos);
+        workbook.close();
+
+        String filename = "livejoy_comparativa_" + pA.replaceAll("\\s+", "_") + "_vs_" + pB.replaceAll("\\s+", "_") + ".xlsx";
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(
+                MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        httpHeaders.setContentDispositionFormData("attachment", filename);
+
+        return ResponseEntity.ok().headers(httpHeaders).body(baos.toByteArray());
+    }
+
+    @GetMapping("/historico/descargar/comparar-olive")
+    public ResponseEntity<byte[]> descargarCompararOliveExcel(
+            @RequestParam("pA") String pA,
+            @RequestParam("pB") String pB) throws Exception {
+
+        List<OliveComparacion> comparacion = obtenerComparacionOlive(pA.trim(), pB.trim());
+
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("Comparativa OLIVE");
+
+        CellStyle headerStyle = workbook.createCellStyle();
+        Font headerFont = workbook.createFont();
+        headerFont.setBold(true);
+        headerStyle.setFont(headerFont);
+        headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        DataFormat dataFormat = workbook.createDataFormat();
+        CellStyle numberStyle = workbook.createCellStyle();
+        numberStyle.setDataFormat(dataFormat.getFormat("#,##0.00"));
+
+        CellStyle totalLabelStyle = workbook.createCellStyle();
+        Font totalFont = workbook.createFont();
+        totalFont.setBold(true);
+        totalLabelStyle.setFont(totalFont);
+        totalLabelStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        totalLabelStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        CellStyle totalNumberStyle = workbook.createCellStyle();
+        totalNumberStyle.cloneStyleFrom(numberStyle);
+        totalNumberStyle.setFont(totalFont);
+        totalNumberStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        totalNumberStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        String[] headers = { 
+            "ID", "Nombre", 
+            "Total Monedas " + pA, "Total Monedas " + pB, 
+            "Bono Agencia " + pA + " ($)", "Bono Agencia " + pB + " ($)", 
+            "Recompensa " + pA + " ($)", "Recompensa " + pB + " ($)", 
+            "Total Pago " + pA + " ($)", "Total Pago " + pB + " ($)", 
+            "Variación ($)", "Total Consolidado ($)", "Tutora (Archivo)" 
+        };
+
+        Row headerRow = sheet.createRow(0);
+        for (int i = 0; i < headers.length; i++) {
+            org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        int rowNum = 1;
+        double totalCoinsA = 0.0;
+        double totalCoinsB = 0.0;
+        double totalBonoA = 0.0;
+        double totalBonoB = 0.0;
+        double totalRecA = 0.0;
+        double totalRecB = 0.0;
+        double totalA = 0.0;
+        double totalB = 0.0;
+        double totalDiff = 0.0;
+        double totalSuma = 0.0;
+
+        for (OliveComparacion fila : comparacion) {
+            Row row = sheet.createRow(rowNum++);
+
+            row.createCell(0).setCellValue(fila.getId());
+            row.createCell(1).setCellValue(fila.getNombre());
+            
+            org.apache.poi.ss.usermodel.Cell cellCoinsA = row.createCell(2);
+            cellCoinsA.setCellValue(fila.getTotalMonedasA());
+            cellCoinsA.setCellStyle(numberStyle);
+            
+            org.apache.poi.ss.usermodel.Cell cellCoinsB = row.createCell(3);
+            cellCoinsB.setCellValue(fila.getTotalMonedasB());
+            cellCoinsB.setCellStyle(numberStyle);
+            
+            org.apache.poi.ss.usermodel.Cell cellBonoA = row.createCell(4);
+            cellBonoA.setCellValue(fila.getBonoAgenciaA());
+            cellBonoA.setCellStyle(numberStyle);
+            
+            org.apache.poi.ss.usermodel.Cell cellBonoB = row.createCell(5);
+            cellBonoB.setCellValue(fila.getBonoAgenciaB());
+            cellBonoB.setCellStyle(numberStyle);
+            
+            org.apache.poi.ss.usermodel.Cell cellRecA = row.createCell(6);
+            cellRecA.setCellValue(fila.getRecompensaA());
+            cellRecA.setCellStyle(numberStyle);
+            
+            org.apache.poi.ss.usermodel.Cell cellRecB = row.createCell(7);
+            cellRecB.setCellValue(fila.getRecompensaB());
+            cellRecB.setCellStyle(numberStyle);
+            
+            org.apache.poi.ss.usermodel.Cell cellA = row.createCell(8);
+            cellA.setCellValue(fila.getTotalA());
+            cellA.setCellStyle(numberStyle);
+            
+            org.apache.poi.ss.usermodel.Cell cellB = row.createCell(9);
+            cellB.setCellValue(fila.getTotalB());
+            cellB.setCellStyle(numberStyle);
+            
+            org.apache.poi.ss.usermodel.Cell cellDiff = row.createCell(10);
+            cellDiff.setCellValue(fila.getDiffTotal());
+            cellDiff.setCellStyle(numberStyle);
+            
+            org.apache.poi.ss.usermodel.Cell cellTotal = row.createCell(11);
+            cellTotal.setCellValue(fila.getTotalConsolidado());
+            cellTotal.setCellStyle(numberStyle);
+            
+            row.createCell(12).setCellValue(fila.getNombreTutora());
+
+            totalCoinsA += fila.getTotalMonedasA();
+            totalCoinsB += fila.getTotalMonedasB();
+            totalBonoA += fila.getBonoAgenciaA();
+            totalBonoB += fila.getBonoAgenciaB();
+            totalRecA += fila.getRecompensaA();
+            totalRecB += fila.getRecompensaB();
+            totalA += fila.getTotalA();
+            totalB += fila.getTotalB();
+            totalDiff += fila.getDiffTotal();
+            totalSuma += fila.getTotalConsolidado();
+        }
+
+        Row totalRow = sheet.createRow(rowNum);
+        totalRow.createCell(0).setCellValue("TOTAL");
+        totalRow.getCell(0).setCellStyle(totalLabelStyle);
+        totalRow.createCell(1).setCellValue("");
+        totalRow.getCell(1).setCellStyle(totalLabelStyle);
+
+        totalRow.createCell(2).setCellValue(totalCoinsA);
+        totalRow.getCell(2).setCellStyle(totalNumberStyle);
+        totalRow.createCell(3).setCellValue(totalCoinsB);
+        totalRow.getCell(3).setCellStyle(totalNumberStyle);
+        totalRow.createCell(4).setCellValue(totalBonoA);
+        totalRow.getCell(4).setCellStyle(totalNumberStyle);
+        totalRow.createCell(5).setCellValue(totalBonoB);
+        totalRow.getCell(5).setCellStyle(totalNumberStyle);
+        totalRow.createCell(6).setCellValue(totalRecA);
+        totalRow.getCell(6).setCellStyle(totalNumberStyle);
+        totalRow.createCell(7).setCellValue(totalRecB);
+        totalRow.getCell(7).setCellStyle(totalNumberStyle);
+        totalRow.createCell(8).setCellValue(totalA);
+        totalRow.getCell(8).setCellStyle(totalNumberStyle);
+        totalRow.createCell(9).setCellValue(totalB);
+        totalRow.getCell(9).setCellStyle(totalNumberStyle);
+        totalRow.createCell(10).setCellValue(totalDiff);
+        totalRow.getCell(10).setCellStyle(totalNumberStyle);
+        totalRow.createCell(11).setCellValue(totalSuma);
+        totalRow.getCell(11).setCellStyle(totalNumberStyle);
+
+        for (int i = 0; i < headers.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        workbook.write(baos);
+        workbook.close();
+
+        String filename = "olive_comparativa_" + pA.replaceAll("\\s+", "_") + "_vs_" + pB.replaceAll("\\s+", "_") + ".xlsx";
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(
+                MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        httpHeaders.setContentDispositionFormData("attachment", filename);
+
+        return ResponseEntity.ok().headers(httpHeaders).body(baos.toByteArray());
+    }
 }
+

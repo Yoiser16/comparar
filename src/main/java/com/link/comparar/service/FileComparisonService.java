@@ -165,6 +165,16 @@ public class FileComparisonService {
         Workbook workbook = null;
         try {
             String filename = file.getOriginalFilename();
+            String tutora = "";
+            if (filename != null) {
+                int lastDot = filename.lastIndexOf('.');
+                if (lastDot > 0) {
+                    tutora = filename.substring(0, lastDot);
+                } else {
+                    tutora = filename;
+                }
+            }
+
             if (filename != null && filename.toLowerCase(Locale.ROOT).endsWith(".xlsx")) {
                 workbook = new XSSFWorkbook(file.getInputStream());
             } else {
@@ -226,6 +236,7 @@ public class FileComparisonService {
 
                     Map<String, String> data = new LinkedHashMap<>();
                     data.put("Sheet", canonicalSheetName(normalizedSheetName)); // guardar hoja canónica
+                    data.put("NombreTutora", tutora);
 
                     for (int j = 0; j < headers.size(); j++) {
                         Cell cell = row.getCell(j);
