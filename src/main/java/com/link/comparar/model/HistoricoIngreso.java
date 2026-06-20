@@ -56,8 +56,44 @@ public class HistoricoIngreso {
     @Column(name = "nombre_tutora", length = 300)
     private String nombreTutora;
 
+    @Column(name = "porcentaje_descuento")
+    private Double porcentajeDescuento;
+
+    @Column(name = "porcentaje_1")
+    private Double porcentaje1;
+
+    @Column(name = "porcentaje_2")
+    private Double porcentaje2;
+
+    @Column(name = "nivel", length = 100)
+    private String nivel;
+
     @Column(name = "fecha_registro", nullable = false)
     private LocalDateTime fechaRegistro;
+
+    public Double getPorcentajeDescuento() {
+        return porcentajeDescuento;
+    }
+
+    public void setPorcentajeDescuento(Double porcentajeDescuento) {
+        this.porcentajeDescuento = porcentajeDescuento;
+    }
+
+    public Double getPorcentaje1() {
+        return porcentaje1;
+    }
+
+    public void setPorcentaje1(Double porcentaje1) {
+        this.porcentaje1 = porcentaje1;
+    }
+
+    public Double getPorcentaje2() {
+        return porcentaje2;
+    }
+
+    public void setPorcentaje2(Double porcentaje2) {
+        this.porcentaje2 = porcentaje2;
+    }
 
     // Constructor vacío requerido por JPA
     public HistoricoIngreso() {
@@ -220,6 +256,14 @@ public class HistoricoIngreso {
 
     public void setNombreTutora(String nombreTutora) {
         this.nombreTutora = nombreTutora;
+    }
+
+    public String getNivel() {
+        return nivel;
+    }
+
+    public void setNivel(String nivel) {
+        this.nivel = nivel;
     }
 
     /**

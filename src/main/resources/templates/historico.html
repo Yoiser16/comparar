@@ -354,6 +354,23 @@
 
         <!-- SALSA Tab Content -->
         <div id="contentSalsa" class="tab-content hidden">
+            <!-- Configuración Porcentaje Salsa -->
+            <div class="mb-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-xs font-bold text-amber-900 dark:text-amber-100">Configuración SALSA Tutora:</span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs text-amber-700 dark:text-amber-300">Descuento:</span>
+                        <input type="number" id="porcentajeSalsaInput" th:value="${descuento != null ? descuento : 60}" min="0" max="100" step="0.1" 
+                               class="w-16 px-1.5 py-0.5 text-xs border border-amber-300 dark:border-amber-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500">
+                        <span class="text-xs text-amber-700 dark:text-amber-300">%</span>
+                    </div>
+                </div>
+                <button type="button" onclick="aplicarPorcentajes('salsa')" 
+                        class="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded transition-colors shadow-sm">
+                    Aplicar Porcentaje
+                </button>
+            </div>
+
             <!-- Normal Navbar when NOT comparing -->
             <div th:unless="${compararActive && activeTab == 'salsa'}" class="mb-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 p-3">
                 <div class="flex items-center gap-3 flex-wrap">
@@ -369,6 +386,7 @@
             <div class="mb-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700">
                 <form action="/historico" method="get" class="flex flex-col md:flex-row gap-4 items-end">
                     <input type="hidden" name="tab" value="salsa">
+                    <input type="hidden" name="descuento" th:value="${descuento != null ? descuento : 60}">
                     <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
                         <div class="flex flex-col gap-1">
                             <label class="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500">Período A (Anterior)</label>
@@ -390,7 +408,7 @@
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                             Comparar
                         </button>
-                        <a th:if="${compararActive && activeTab == 'salsa'}" th:href="@{/historico/descargar/comparar-salsa(pA=${compPA}, pB=${compPB})}" class="w-full md:w-auto px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs transition-colors shadow-sm h-[38px] flex items-center justify-center gap-1.5">
+                        <a th:if="${compararActive && activeTab == 'salsa'}" th:href="@{/historico/descargar/comparar-salsa(pA=${compPA}, pB=${compPB}, descuento=${descuento != null ? descuento : 60})}" class="w-full md:w-auto px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs transition-colors shadow-sm h-[38px] flex items-center justify-center gap-1.5">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                             Descargar Excel
                         </a>
@@ -527,6 +545,26 @@
 
         <!-- LIVEJOY Tab Content -->
         <div id="contentLivejoy" class="tab-content hidden">
+            <!-- Configuración Porcentaje Livejoy -->
+            <div class="mb-3 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-xs font-bold text-purple-900 dark:text-purple-100">Configuración LIVEJOY Tutora:</span>
+                    <div class="flex items-center gap-1.5">
+                        <input type="number" id="porcentaje1Input" th:value="${p1 != null ? p1 : 12}" min="0" max="100" step="0.1" 
+                               class="w-16 px-1.5 py-0.5 text-xs border border-purple-300 dark:border-purple-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500">
+                        <span class="text-xs text-purple-700 dark:text-purple-300">%</span>
+                        <span class="text-xs text-purple-600 dark:text-purple-400">×</span>
+                        <input type="number" id="porcentaje2Input" th:value="${p2 != null ? p2 : 40}" min="0" max="100" step="0.1" 
+                               class="w-16 px-1.5 py-0.5 text-xs border border-purple-300 dark:border-purple-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500">
+                        <span class="text-xs text-purple-700 dark:text-purple-300">%</span>
+                    </div>
+                </div>
+                <button type="button" onclick="aplicarPorcentajes('livejoy')" 
+                        class="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded transition-colors shadow-sm">
+                    Aplicar Porcentaje
+                </button>
+            </div>
+
             <!-- Normal Navbar when NOT comparing -->
             <div th:unless="${compararActive && activeTab == 'livejoy'}" class="mb-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 p-3">
                 <div class="flex items-center gap-3 flex-wrap">
@@ -542,6 +580,8 @@
             <div class="mb-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700">
                 <form action="/historico" method="get" class="flex flex-col md:flex-row gap-4 items-end">
                     <input type="hidden" name="tab" value="livejoy">
+                    <input type="hidden" name="p1" th:value="${p1 != null ? p1 : 12}">
+                    <input type="hidden" name="p2" th:value="${p2 != null ? p2 : 40}">
                     <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
                         <div class="flex flex-col gap-1">
                             <label class="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500">Período A (Anterior)</label>
@@ -563,7 +603,7 @@
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                             Comparar
                         </button>
-                        <a th:if="${compararActive && activeTab == 'livejoy'}" th:href="@{/historico/descargar/comparar-livejoy(pA=${compPA}, pB=${compPB})}" class="w-full md:w-auto px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs transition-colors shadow-sm h-[38px] flex items-center justify-center gap-1.5">
+                        <a th:if="${compararActive && activeTab == 'livejoy'}" th:href="@{/historico/descargar/comparar-livejoy(pA=${compPA}, pB=${compPB}, p1=${p1 != null ? p1 : 12}, p2=${p2 != null ? p2 : 40})}" class="w-full md:w-auto px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs transition-colors shadow-sm h-[38px] flex items-center justify-center gap-1.5">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                             Descargar Excel
                         </a>
@@ -761,7 +801,7 @@
                                 <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Nombre</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Monedas</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Total Monedas</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Bono Agencia</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Nivel</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Recompensa</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">País</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Tutora (Archivo)</th>
@@ -784,7 +824,7 @@
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-orange-600 dark:text-orange-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${#numbers.formatDecimal(registro.monedas, 1, 2)}">0.00</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-green-700 dark:text-green-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${#numbers.formatDecimal(registro.totalMonedas, 1, 2)}">0.00</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-blue-700 dark:text-blue-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(registro.bonoAgencia, 1, 2)}">$0.00</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-left text-slate-900 dark:text-slate-100 font-semibold border border-slate-300 dark:border-gray-600" th:text="${registro.nivel}">-</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(registro.recompensa, 1, 2)}">$0.00</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.pais}">-</td>
                                 <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.nombreTutora}">-</td>
@@ -825,10 +865,9 @@
                                 <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Nombre</th>
                                 <th th:text="${'Total Monedas ' + compPA}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Monedas A</th>
                                 <th th:text="${'Total Monedas ' + compPB}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Monedas B</th>
-                                <th th:text="${'Bono Agencia ' + compPA + ' ($)'}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Bono A</th>
-                                <th th:text="${'Bono Agencia ' + compPB + ' ($)'}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Bono B</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Nivel</th>
                                 <th th:text="${'Recompensa ' + compPA + ' ($)'}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Rec. A</th>
-                                <th th:text="${'Recompensa ' + compPB + ' ($)'}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Rec. B</th>
+                                <th th:text="${'Recompensa ' + compPB}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Rec. B</th>
                                 <th th:text="${'Total Pago ' + compPA + ' ($)'}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Total A</th>
                                 <th th:text="${'Total Pago ' + compPB + ' ($)'}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Total B</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Variación ($)</th>
@@ -838,12 +877,12 @@
                         </thead>
                         <tbody class="bg-white dark:bg-gray-800">
                             <tr th:if="${#lists.isEmpty(oliveComparacion)}">
-                                <td colspan="13" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400 italic border border-slate-300 dark:border-gray-600">
+                                <td colspan="12" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400 italic border border-slate-300 dark:border-gray-600">
                                     No hay registros para comparar en OLIVE
                                 </td>
                             </tr>
                             <tr th:each="fila : ${oliveComparacion}" class="data-row-compare-olive hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors border border-slate-300 dark:border-gray-600"
-                                th:attr="data-payout-a=${fila.totalA},data-payout-b=${fila.totalB},data-coins-a=${fila.totalMonedasA},data-coins-b=${fila.totalMonedasB},data-bono-a=${fila.bonoAgenciaA},data-bono-b=${fila.bonoAgenciaB},data-rec-a=${fila.recompensaA},data-rec-b=${fila.recompensaB}">
+                                th:attr="data-payout-a=${fila.totalA},data-payout-b=${fila.totalB},data-coins-a=${fila.totalMonedasA},data-coins-b=${fila.totalMonedasB},data-rec-a=${fila.recompensaA},data-rec-b=${fila.recompensaB}">
                                 <td class="px-4 py-3 whitespace-nowrap text-sm font-mono font-bold border border-slate-300 dark:border-gray-600">
                                     <a th:href="@{/historico/usuario/{id}(id=${fila.id})}" class="text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:underline" th:text="${fila.id}">ID</a>
                                 </td>
@@ -852,8 +891,7 @@
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${#numbers.formatDecimal(fila.totalMonedasA, 1, 2)}">0.00</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${#numbers.formatDecimal(fila.totalMonedasB, 1, 2)}">0.00</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(fila.bonoAgenciaA, 1, 2)}">$0.00</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(fila.bonoAgenciaB, 1, 2)}">$0.00</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-left text-slate-900 dark:text-slate-100 font-semibold border border-slate-300 dark:border-gray-600" th:text="${fila.nivel}">-</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(fila.recompensaA, 1, 2)}">$0.00</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(fila.recompensaB, 1, 2)}">$0.00</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(fila.totalA, 1, 2)}">$0.00</td>
@@ -869,8 +907,7 @@
                                 <td colspan="2" class="px-4 py-3 text-right text-sm uppercase border border-slate-300 dark:border-gray-600">TOTALES:</td>
                                 <td id="compOliveTotalMonedasA" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-900 dark:text-white border border-slate-300 dark:border-gray-600" th:text="${#numbers.formatDecimal(#aggregates.sum(oliveComparacion.![totalMonedasA]), 1, 2)}">0.00</td>
                                 <td id="compOliveTotalMonedasB" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-900 dark:text-white border border-slate-300 dark:border-gray-600" th:text="${#numbers.formatDecimal(#aggregates.sum(oliveComparacion.![totalMonedasB]), 1, 2)}">0.00</td>
-                                <td id="compOliveTotalBonoA" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-900 dark:text-white border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(#aggregates.sum(oliveComparacion.![bonoAgenciaA]), 1, 2)}">$0.00</td>
-                                <td id="compOliveTotalBonoB" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-900 dark:text-white border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(#aggregates.sum(oliveComparacion.![bonoAgenciaB]), 1, 2)}">$0.00</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-left border border-slate-300 dark:border-gray-600"></td>
                                 <td id="compOliveTotalRecA" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-900 dark:text-white border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(#aggregates.sum(oliveComparacion.![recompensaA]), 1, 2)}">$0.00</td>
                                 <td id="compOliveTotalRecB" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-900 dark:text-white border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(#aggregates.sum(oliveComparacion.![recompensaB]), 1, 2)}">$0.00</td>
                                 <td id="compOliveTotalA" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-900 dark:text-white border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(compOliveTotalA, 1, 2)}">$0.00</td>
@@ -1089,7 +1126,7 @@
                 return;
             }
 
-            window.location.href = `/historico/descargar/excel-periodo?periodo=${encodeURIComponent(periodo)}`;
+            window.location.href = `/historico/descargar/excel-periodo?periodo=${encodeURIComponent(periodo)}&descuento=${document.getElementById('porcentajeSalsaInput') ? document.getElementById('porcentajeSalsaInput').value : 60}&p1=${document.getElementById('porcentaje1Input') ? document.getElementById('porcentaje1Input').value : 12}&p2=${document.getElementById('porcentaje2Input') ? document.getElementById('porcentaje2Input').value : 40}`;
         }
 
         function openDeleteSelectedPeriodModal() {
@@ -1373,8 +1410,6 @@
                     if (!row.classList.contains('hidden')) {
                         monedasA += parseFloat(row.getAttribute('data-coins-a') || '0');
                         monedasB += parseFloat(row.getAttribute('data-coins-b') || '0');
-                        bonoA += parseFloat(row.getAttribute('data-bono-a') || '0');
-                        bonoB += parseFloat(row.getAttribute('data-bono-b') || '0');
                         recA += parseFloat(row.getAttribute('data-rec-a') || '0');
                         recB += parseFloat(row.getAttribute('data-rec-b') || '0');
                         totalA += parseFloat(row.getAttribute('data-payout-a') || '0');
@@ -1386,8 +1421,6 @@
                 
                 const elMonedasA = document.getElementById('compOliveTotalMonedasA');
                 const elMonedasB = document.getElementById('compOliveTotalMonedasB');
-                const elBonoA = document.getElementById('compOliveTotalBonoA');
-                const elBonoB = document.getElementById('compOliveTotalBonoB');
                 const elRecA = document.getElementById('compOliveTotalRecA');
                 const elRecB = document.getElementById('compOliveTotalRecB');
                 const elTotalA = document.getElementById('compOliveTotalA');
@@ -1397,8 +1430,6 @@
                 
                 if (elMonedasA) elMonedasA.textContent = monedasA.toFixed(2);
                 if (elMonedasB) elMonedasB.textContent = monedasB.toFixed(2);
-                if (elBonoA) elBonoA.textContent = `$${bonoA.toFixed(2)}`;
-                if (elBonoB) elBonoB.textContent = `$${bonoB.toFixed(2)}`;
                 if (elRecA) elRecA.textContent = `$${recA.toFixed(2)}`;
                 if (elRecB) elRecB.textContent = `$${recB.toFixed(2)}`;
                 if (elTotalA) elTotalA.textContent = `$${totalA.toFixed(2)}`;
@@ -1472,6 +1503,50 @@
         applyPeriodFilter('salsa');
         applyPeriodFilter('livejoy');
         applyPeriodFilter('olive');
+
+        async function aplicarPorcentajes(platform) {
+            const activeTab = getActiveTabName();
+            const periodo = selectedPeriods[activeTab] || 'all';
+            
+            const bodyData = {
+                plataforma: platform.toUpperCase(),
+                periodo: periodo
+            };
+            
+            if (platform === 'salsa') {
+                bodyData.descuento = parseFloat(document.getElementById('porcentajeSalsaInput').value);
+            } else if (platform === 'livejoy') {
+                bodyData.p1 = parseFloat(document.getElementById('porcentaje1Input').value);
+                bodyData.p2 = parseFloat(document.getElementById('porcentaje2Input').value);
+            }
+            
+            try {
+                const response = await fetch('/historico/actualizar-porcentajes-ajax', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(bodyData)
+                });
+                
+                if (response.ok) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    urlParams.set('tab', platform);
+                    if (platform === 'salsa') {
+                        urlParams.set('descuento', bodyData.descuento);
+                    } else if (platform === 'livejoy') {
+                        urlParams.set('p1', bodyData.p1);
+                        urlParams.set('p2', bodyData.p2);
+                    }
+                    window.location.search = urlParams.toString();
+                } else {
+                    alert('Error al guardar los porcentajes en la base de datos.');
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Error al conectar con el servidor.');
+            }
+        }
 
         const activeTabFlag = document.getElementById('activeTabFlag');
         const defaultTab = activeTabFlag ? activeTabFlag.getAttribute('data-active-tab') : 'consolidado';

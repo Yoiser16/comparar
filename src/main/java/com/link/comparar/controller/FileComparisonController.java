@@ -101,7 +101,8 @@ public class FileComparisonController {
             @RequestParam("excelFiles") MultipartFile[] excelFiles,
             @RequestParam(value = "periodoComparacion", required = false) String periodoComparacion,
             Model model,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes,
+            jakarta.servlet.http.HttpSession session) {
 
         // Validar que se hayan seleccionado archivos
         if (csvFiles == null || csvFiles.length == 0 || excelFiles == null || excelFiles.length == 0) {
@@ -169,6 +170,9 @@ public class FileComparisonController {
 
             // Guardar automáticamente registros con ingresos en el histórico con el periodo
             historicoService.guardarRegistrosConIngresos(result.getMatchingRecords(), periodoComparacion.trim());
+
+            // Guardar periodo en la sesión para actualizar porcentajes después
+            session.setAttribute("periodoComparacion", periodoComparacion.trim());
 
             // Preparar nombres de archivos para mostrar
             StringBuilder csvNames = new StringBuilder();
@@ -252,9 +256,15 @@ public class FileComparisonController {
     @GetMapping("/download/livejoy-tutora")
     public ResponseEntity<byte[]> downloadLivejoyTutora(
             @SessionAttribute("comparisonResult") ComparisonResult result,
+            jakarta.servlet.http.HttpSession session,
             @RequestParam(value = "p1", defaultValue = "12") double porcentaje1,
             @RequestParam(value = "p2", defaultValue = "40") double porcentaje2) {
         try {
+            // Guardar en base de datos los porcentajes personalizados usados
+            String periodo = (String) session.getAttribute("periodoComparacion");
+            if (periodo != null) {
+                historicoService.actualizarPorcentajes(periodo, "LIVEJOY", null, porcentaje1, porcentaje2);
+            }
             byte[] data = generateLivejoyTutoraExcel(result.getMatchingRecords(), porcentaje1, porcentaje2);
             String filename = "livejoy_tutora.xlsx";
             MediaType mediaType = MediaType
@@ -273,8 +283,14 @@ public class FileComparisonController {
     @GetMapping("/download/salsa-resumen")
     public ResponseEntity<byte[]> downloadSalsaResumen(
             @SessionAttribute("comparisonResult") ComparisonResult result,
+            jakarta.servlet.http.HttpSession session,
             @RequestParam(value = "descuento", defaultValue = "60") double porcentajeDescuento) {
         try {
+            // Guardar en base de datos el porcentaje de descuento personalizado usado
+            String periodo = (String) session.getAttribute("periodoComparacion");
+            if (periodo != null) {
+                historicoService.actualizarPorcentajes(periodo, "SALSA", porcentajeDescuento, null, null);
+            }
             byte[] data = generateSalsaResumenExcel(result.getMatchingRecords(), porcentajeDescuento);
             String filename = "salsa_resumen.xlsx";
             MediaType mediaType = MediaType
@@ -687,14 +703,20 @@ public class FileComparisonController {
             @RequestParam(value = "tab", required = false) String tab,
             @RequestParam(value = "compPA", required = false) String compPA,
             @RequestParam(value = "compPB", required = false) String compPB,
+            @RequestParam(value = "descuento", defaultValue = "60") double descuento,
+            @RequestParam(value = "p1", defaultValue = "12") double p1,
+            @RequestParam(value = "p2", defaultValue = "40") double p2,
             Model model) {
         List<HistoricoIngreso> registros = historicoService.obtenerTodosLosRegistros();
         List<String> periodosDisponibles = historicoService.obtenerPeriodosDisponibles();
 
-        prepararDatosHistoricoPorSheet(model, registros, periodosDisponibles, null);
+        prepararDatosHistoricoPorSheet(model, registros, periodosDisponibles, null, descuento, p1, p2);
 
         // Activar pestaña por defecto
         model.addAttribute("activeTab", tab != null ? tab.trim().toLowerCase() : "consolidado");
+        model.addAttribute("descuento", descuento);
+        model.addAttribute("p1", p1);
+        model.addAttribute("p2", p2);
 
         // Si hay una comparación activa
         if (compPA != null && !compPA.trim().isEmpty() && compPB != null && !compPB.trim().isEmpty() && tab != null) {
@@ -706,7 +728,7 @@ public class FileComparisonController {
             model.addAttribute("compararActive", true);
 
             if ("salsa".equals(activeTab)) {
-                List<SalsaComparacion> comparacion = obtenerComparacionSalsa(pA, pB);
+                List<SalsaComparacion> comparacion = obtenerComparacionSalsa(pA, pB, descuento);
                 model.addAttribute("salsaComparacion", comparacion);
                 double totalA = comparacion.stream().mapToDouble(SalsaComparacion::getTutoraA).sum();
                 double totalB = comparacion.stream().mapToDouble(SalsaComparacion::getTutoraB).sum();
@@ -715,7 +737,7 @@ public class FileComparisonController {
                 model.addAttribute("compSalsaTotalDiff", totalB - totalA);
                 model.addAttribute("compSalsaTotalSuma", totalA + totalB);
             } else if ("livejoy".equals(activeTab)) {
-                List<LivejoyComparacion> comparacion = obtenerComparacionLivejoy(pA, pB);
+                List<LivejoyComparacion> comparacion = obtenerComparacionLivejoy(pA, pB, p1, p2);
                 model.addAttribute("livejoyComparacion", comparacion);
                 double totalA = comparacion.stream().mapToDouble(LivejoyComparacion::getTutoraA).sum();
                 double totalB = comparacion.stream().mapToDouble(LivejoyComparacion::getTutoraB).sum();
@@ -820,12 +842,15 @@ public class FileComparisonController {
             if ("SALSA".equals(sheet)) {
                 double ba = reg.getBonoAgencia() != null ? reg.getBonoAgencia() : 0.0;
                 double bt = reg.getBonusTop100() != null ? reg.getBonusTop100() : 0.0;
-                valor = (ba * 0.40) + (bt * 0.40);
+                double appliedDescuento = (reg.getPorcentajeDescuento() != null) ? reg.getPorcentajeDescuento() : 60.0;
+                valor = (ba * (1.0 - appliedDescuento/100.0)) + (bt * (1.0 - appliedDescuento/100.0));
                 coins = reg.getTotalMonedas() != null ? reg.getTotalMonedas() : 0.0;
                 totalSalsa += valor;
             } else if ("LIVEJOY".equals(sheet)) {
                 double ing = reg.getMonedas() != null ? reg.getMonedas() : 0.0;
-                valor = ing * 0.12 * 0.40;
+                double appliedP1 = (reg.getPorcentaje1() != null) ? reg.getPorcentaje1() : 12.0;
+                double appliedP2 = (reg.getPorcentaje2() != null) ? reg.getPorcentaje2() : 40.0;
+                valor = ing * (appliedP1/100.0) * (appliedP2/100.0);
                 coins = ing;
                 totalLivejoy += valor;
             } else if ("OLIVE".equals(sheet)) {
@@ -991,7 +1016,10 @@ public class FileComparisonController {
      */
     @GetMapping("/historico/descargar/excel-periodo")
     public ResponseEntity<byte[]> descargarExcelPeriodoSeleccionado(
-            @RequestParam("periodo") String periodo) throws Exception {
+            @RequestParam("periodo") String periodo,
+            @RequestParam(value = "descuento", defaultValue = "60") double descuento,
+            @RequestParam(value = "p1", defaultValue = "12") double p1,
+            @RequestParam(value = "p2", defaultValue = "40") double p2) throws Exception {
 
         if (periodo == null || periodo.trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
@@ -1043,7 +1071,7 @@ public class FileComparisonController {
         }
 
         Sheet oliveSheet = workbook.createSheet("OLIVE");
-        String[] oliveHeaders = { "ID", "Nombre", "Monedas", "Total Monedas", "Bono Agencia", "Recompensa", "País", "Tutora (Archivo)" };
+        String[] oliveHeaders = { "ID", "Nombre", "Monedas", "Total Monedas", "Nivel", "Recompensa", "País", "Tutora (Archivo)" };
         Row oliveHeaderRow = oliveSheet.createRow(0);
         for (int i = 0; i < oliveHeaders.length; i++) {
             org.apache.poi.ss.usermodel.Cell cell = oliveHeaderRow.createCell(i);
@@ -1071,7 +1099,8 @@ public class FileComparisonController {
                 Row row = salsaSheet.createRow(salsaRowNum++);
                 double bonoAgencia = registro.getBonoAgencia() != null ? registro.getBonoAgencia() : 0.0;
                 double bonusTop100 = registro.getBonusTop100() != null ? registro.getBonusTop100() : 0.0;
-                double tutora = roundTwoDecimals((bonoAgencia * 0.40) + (bonusTop100 * 0.40));
+                double appliedDescuento = (registro.getPorcentajeDescuento() != null) ? registro.getPorcentajeDescuento() : descuento;
+                double tutora = roundTwoDecimals((bonoAgencia * (1.0 - appliedDescuento/100.0)) + (bonusTop100 * (1.0 - appliedDescuento/100.0)));
                 double totalCoins = roundTwoDecimals(registro.getTotalMonedas() != null ? registro.getTotalMonedas() : 0.0);
 
                 row.createCell(0).setCellValue(registro.getIdentificacion() != null ? registro.getIdentificacion() : "");
@@ -1087,7 +1116,9 @@ public class FileComparisonController {
             } else if ("LIVEJOY".equals(sheet)) {
                 Row row = livejoySheet.createRow(livejoyRowNum++);
                 double ingresos = roundTwoDecimals(registro.getMonedas() != null ? registro.getMonedas() : 0.0);
-                double tutora = roundTwoDecimals(ingresos * 0.12 * 0.40);
+                double appliedP1 = (registro.getPorcentaje1() != null) ? registro.getPorcentaje1() : p1;
+                double appliedP2 = (registro.getPorcentaje2() != null) ? registro.getPorcentaje2() : p2;
+                double tutora = roundTwoDecimals(ingresos * (appliedP1/100.0) * (appliedP2/100.0));
 
                 row.createCell(0).setCellValue(registro.getIdentificacion() != null ? registro.getIdentificacion() : "");
                 row.createCell(1).setCellValue(registro.getNombreCompleto() != null ? registro.getNombreCompleto() : "");
@@ -1105,7 +1136,7 @@ public class FileComparisonController {
 
                 double monedas = roundTwoDecimals(registro.getMonedas() != null ? registro.getMonedas() : 0.0);
                 double totalMonedas = roundTwoDecimals(registro.getTotalMonedas() != null ? registro.getTotalMonedas() : 0.0);
-                double bonoAgencia = roundTwoDecimals(registro.getBonoAgencia() != null ? registro.getBonoAgencia() : 0.0);
+                String nivel = registro.getNivel() != null ? registro.getNivel() : "-";
                 double recompensa = roundTwoDecimals(registro.getRecompensaEvento() != null ? registro.getRecompensaEvento() : 0.0);
 
                 row.createCell(0).setCellValue(registro.getIdentificacion() != null ? registro.getIdentificacion() : "");
@@ -1114,8 +1145,7 @@ public class FileComparisonController {
                 row.getCell(2).setCellStyle(numberStyle);
                 row.createCell(3).setCellValue(totalMonedas);
                 row.getCell(3).setCellStyle(numberStyle);
-                row.createCell(4).setCellValue(bonoAgencia);
-                row.getCell(4).setCellStyle(numberStyle);
+                row.createCell(4).setCellValue(nivel);
                 row.createCell(5).setCellValue(recompensa);
                 row.getCell(5).setCellStyle(numberStyle);
                 row.createCell(6).setCellValue(registro.getPais() != null ? registro.getPais() : "");
@@ -1123,7 +1153,6 @@ public class FileComparisonController {
 
                 oliveTotalMonedas += monedas;
                 oliveTotalMonedasGeneral += totalMonedas;
-                oliveTotalBonoAgencia += bonoAgencia;
                 oliveTotalRecompensa += recompensa;
             }
         }
@@ -1151,8 +1180,8 @@ public class FileComparisonController {
         oliveTotalRow.getCell(2).setCellStyle(totalNumberStyle);
         oliveTotalRow.createCell(3).setCellValue(roundTwoDecimals(oliveTotalMonedasGeneral));
         oliveTotalRow.getCell(3).setCellStyle(totalNumberStyle);
-        oliveTotalRow.createCell(4).setCellValue(roundTwoDecimals(oliveTotalBonoAgencia));
-        oliveTotalRow.getCell(4).setCellStyle(totalNumberStyle);
+        oliveTotalRow.createCell(4).setCellValue("");
+        oliveTotalRow.getCell(4).setCellStyle(totalLabelStyle);
         oliveTotalRow.createCell(5).setCellValue(roundTwoDecimals(oliveTotalRecompensa));
         oliveTotalRow.getCell(5).setCellStyle(totalNumberStyle);
 
@@ -1349,11 +1378,56 @@ public class FileComparisonController {
     }
 
     /**
+     * Actualiza los porcentajes para el histórico de ingresos a través de una petición AJAX.
+     */
+    @PostMapping("/historico/actualizar-porcentajes-ajax")
+    public ResponseEntity<?> actualizarPorcentajesAjax(@RequestBody Map<String, Object> payload) {
+        try {
+            String plataforma = (String) payload.get("plataforma");
+            String periodo = (String) payload.get("periodo");
+            
+            Double descuento = null;
+            if (payload.containsKey("descuento") && payload.get("descuento") != null) {
+                descuento = Double.valueOf(payload.get("descuento").toString());
+            }
+            
+            Double p1 = null;
+            if (payload.containsKey("p1") && payload.get("p1") != null) {
+                p1 = Double.valueOf(payload.get("p1").toString());
+            }
+            
+            Double p2 = null;
+            if (payload.containsKey("p2") && payload.get("p2") != null) {
+                p2 = Double.valueOf(payload.get("p2").toString());
+            }
+            
+            if ("all".equalsIgnoreCase(periodo)) {
+                List<String> periodos = historicoService.obtenerPeriodosDisponibles();
+                for (String p : periodos) {
+                    historicoService.actualizarPorcentajes(p, plataforma, descuento, p1, p2);
+                }
+            } else {
+                historicoService.actualizarPorcentajes(periodo, plataforma, descuento, p1, p2);
+            }
+            
+            return ResponseEntity.ok().body("Porcentajes actualizados exitosamente");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+        }
+    }
+
+    private void prepararDatosHistoricoPorSheet(Model model, List<HistoricoIngreso> registros, 
+                                                 List<String> periodosDisponibles, String periodoSeleccionado) {
+        prepararDatosHistoricoPorSheet(model, registros, periodosDisponibles, periodoSeleccionado, 60.0, 12.0, 40.0);
+    }
+
+    /**
      * Prepara los datos del histórico agrupados por sheet (SALSA, LIVEJOY, OLIVE)
      * con cálculo de Tutora para SALSA y LIVEJOY
      */
     private void prepararDatosHistoricoPorSheet(Model model, List<HistoricoIngreso> registros, 
-                                                 List<String> periodosDisponibles, String periodoSeleccionado) {
+                                                 List<String> periodosDisponibles, String periodoSeleccionado,
+                                                 double descuento, double p1, double p2) {
         // Agrupar registros por sheet
         List<Map<String, Object>> salsaRecords = new ArrayList<>();
         List<Map<String, Object>> livejoyRecords = new ArrayList<>();
@@ -1371,10 +1445,11 @@ public class FileComparisonController {
                 data.put("fechaRegistro", registro.getFechaRegistro());
                 data.put("nombreTutora", registro.getNombreTutora() != null ? registro.getNombreTutora() : "-");
                 
-                // Calcular Tutora: (Bono de Agencia - 60%) + (Bonus Top 100 - 60%)
+                // Calcular Tutora: (Bono de Agencia - descuento%) + (Bonus Top 100 - descuento%)
                 double bonoAgencia = registro.getBonoAgencia() != null ? registro.getBonoAgencia() : 0.0;
                 double bonusTop100 = registro.getBonusTop100() != null ? registro.getBonusTop100() : 0.0;
-                double tutora = (bonoAgencia * 0.40) + (bonusTop100 * 0.40);
+                double appliedDescuento = (registro.getPorcentajeDescuento() != null) ? registro.getPorcentajeDescuento() : descuento;
+                double tutora = (bonoAgencia * (1.0 - appliedDescuento/100.0)) + (bonusTop100 * (1.0 - appliedDescuento/100.0));
                 data.put("tutora", tutora);
                 
                 salsaRecords.add(data);
@@ -1390,9 +1465,11 @@ public class FileComparisonController {
                 data.put("fechaRegistro", registro.getFechaRegistro());
                 data.put("nombreTutora", registro.getNombreTutora() != null ? registro.getNombreTutora() : "-");
                 
-                // Calcular Tutora: Ingresos * 12% * 40%
+                // Calcular Tutora: Ingresos * p1% * p2%
                 double ingresos = registro.getMonedas() != null ? registro.getMonedas() : 0.0;
-                double tutora = ingresos * 0.12 * 0.40;
+                double appliedP1 = (registro.getPorcentaje1() != null) ? registro.getPorcentaje1() : p1;
+                double appliedP2 = (registro.getPorcentaje2() != null) ? registro.getPorcentaje2() : p2;
+                double tutora = ingresos * (appliedP1/100.0) * (appliedP2/100.0);
                 data.put("tutora", tutora);
                 
                 livejoyRecords.add(data);
@@ -1402,7 +1479,7 @@ public class FileComparisonController {
                 data.put("nombre", registro.getNombreCompleto());
                 data.put("monedas", registro.getMonedas() != null ? registro.getMonedas() : 0.0);
                 data.put("totalMonedas", registro.getTotalMonedas() != null ? registro.getTotalMonedas() : 0.0);
-                data.put("bonoAgencia", registro.getBonoAgencia() != null ? registro.getBonoAgencia() : 0.0);
+                data.put("nivel", registro.getNivel() != null ? registro.getNivel() : "-");
                 data.put("recompensa", registro.getRecompensaEvento() != null ? registro.getRecompensaEvento() : 0.0);
                 data.put("pais", registro.getPais());
                 data.put("periodo", registro.getPeriodoComparacion());
@@ -1482,7 +1559,10 @@ public class FileComparisonController {
                 registro.getTotalMonedas(),
                 registro.getBonoAgencia(),
                 registro.getBonusTop100(),
-                registro.getRecompensaEvento()
+                registro.getRecompensaEvento(),
+                registro.getPorcentajeDescuento(),
+                registro.getPorcentaje1(),
+                registro.getPorcentaje2()
             );
         }
 
@@ -1522,7 +1602,10 @@ public class FileComparisonController {
                 registro.getTotalMonedas(),
                 registro.getBonoAgencia(),
                 registro.getBonusTop100(),
-                registro.getRecompensaEvento()
+                registro.getRecompensaEvento(),
+                registro.getPorcentajeDescuento(),
+                registro.getPorcentaje1(),
+                registro.getPorcentaje2()
             );
         }
 
@@ -1642,7 +1725,7 @@ public class FileComparisonController {
         public int getSemanasCobradas() { return semanasCobradas; }
         public double getTotalAcumulado() { return totalAcumulado; }
 
-        public void agregarIngreso(String periodo, String sheet, Double monedas, Double totalMonedas, Double bonoAgencia, Double bonusTop100, Double recompensa) {
+        public void agregarIngreso(String periodo, String sheet, Double monedas, Double totalMonedas, Double bonoAgencia, Double bonusTop100, Double recompensa, Double porcentajeDescuento, Double porcentaje1, Double porcentaje2) {
             this.plataformas.add(sheet);
             
             double valor = 0.0;
@@ -1650,11 +1733,14 @@ public class FileComparisonController {
             if ("SALSA".equals(sheet)) {
                 double ba = bonoAgencia != null ? bonoAgencia : 0.0;
                 double bt = bonusTop100 != null ? bonusTop100 : 0.0;
-                valor = (ba * 0.40) + (bt * 0.40);
+                double appliedDescuento = (porcentajeDescuento != null) ? porcentajeDescuento : 60.0;
+                valor = (ba * (1.0 - appliedDescuento/100.0)) + (bt * (1.0 - appliedDescuento/100.0));
                 coins = totalMonedas != null ? totalMonedas : 0.0;
             } else if ("LIVEJOY".equals(sheet)) {
                 double ing = monedas != null ? monedas : 0.0;
-                valor = ing * 0.12 * 0.40;
+                double appliedP1 = (porcentaje1 != null) ? porcentaje1 : 12.0;
+                double appliedP2 = (porcentaje2 != null) ? porcentaje2 : 40.0;
+                valor = ing * (appliedP1/100.0) * (appliedP2/100.0);
                 coins = ing;
             } else if ("OLIVE".equals(sheet)) {
                 coins = totalMonedas != null ? totalMonedas : (monedas != null ? monedas : 0.0);
@@ -1748,6 +1834,7 @@ public class FileComparisonController {
         private String id;
         private String nombre;
         private String nombreTutora = "-";
+        private String nivel = "-";
         private double totalMonedasA;
         private double totalMonedasB;
         private double bonoAgenciaA;
@@ -1766,6 +1853,8 @@ public class FileComparisonController {
         public String getNombre() { return nombre; }
         public String getNombreTutora() { return nombreTutora; }
         public void setNombreTutora(String nombreTutora) { this.nombreTutora = nombreTutora; }
+        public String getNivel() { return nivel; }
+        public void setNivel(String nivel) { this.nivel = nivel; }
         public double getTotalMonedasA() { return totalMonedasA; }
         public void setTotalMonedasA(double totalMonedasA) { this.totalMonedasA = totalMonedasA; }
         public double getTotalMonedasB() { return totalMonedasB; }
@@ -1786,7 +1875,7 @@ public class FileComparisonController {
         public double getTotalConsolidado() { return totalA + totalB; }
     }
 
-    private List<SalsaComparacion> obtenerComparacionSalsa(String pA, String pB) {
+    private List<SalsaComparacion> obtenerComparacionSalsa(String pA, String pB, double descuento) {
         List<HistoricoIngreso> regA = historicoService.buscarPorPeriodo(pA);
         List<HistoricoIngreso> regB = historicoService.buscarPorPeriodo(pB);
 
@@ -1800,7 +1889,8 @@ public class FileComparisonController {
                 double ba = r.getBonoAgencia() != null ? r.getBonoAgencia() : 0.0;
                 double bt = r.getBonusTop100() != null ? r.getBonusTop100() : 0.0;
                 double coins = r.getTotalMonedas() != null ? r.getTotalMonedas() : 0.0;
-                double val = (ba * 0.40) + (bt * 0.40);
+                double appliedDescuento = (r.getPorcentajeDescuento() != null) ? r.getPorcentajeDescuento() : descuento;
+                double val = (ba * (1.0 - appliedDescuento/100.0)) + (bt * (1.0 - appliedDescuento/100.0));
                 if (coins > 0.0 || val > 0.0) {
                     sc.setCoinsA(sc.getCoinsA() + coins);
                     sc.setTutoraA(sc.getTutoraA() + val);
@@ -1816,7 +1906,8 @@ public class FileComparisonController {
                 double ba = r.getBonoAgencia() != null ? r.getBonoAgencia() : 0.0;
                 double bt = r.getBonusTop100() != null ? r.getBonusTop100() : 0.0;
                 double coins = r.getTotalMonedas() != null ? r.getTotalMonedas() : 0.0;
-                double val = (ba * 0.40) + (bt * 0.40);
+                double appliedDescuento = (r.getPorcentajeDescuento() != null) ? r.getPorcentajeDescuento() : descuento;
+                double val = (ba * (1.0 - appliedDescuento/100.0)) + (bt * (1.0 - appliedDescuento/100.0));
                 if (coins > 0.0 || val > 0.0) {
                     sc.setCoinsB(sc.getCoinsB() + coins);
                     sc.setTutoraB(sc.getTutoraB() + val);
@@ -1828,7 +1919,7 @@ public class FileComparisonController {
         return list;
     }
 
-    private List<LivejoyComparacion> obtenerComparacionLivejoy(String pA, String pB) {
+    private List<LivejoyComparacion> obtenerComparacionLivejoy(String pA, String pB, double p1, double p2) {
         List<HistoricoIngreso> regA = historicoService.buscarPorPeriodo(pA);
         List<HistoricoIngreso> regB = historicoService.buscarPorPeriodo(pB);
 
@@ -1840,7 +1931,9 @@ public class FileComparisonController {
                     lc.setNombreTutora(r.getNombreTutora());
                 }
                 double ing = r.getMonedas() != null ? r.getMonedas() : 0.0;
-                double val = ing * 0.12 * 0.40;
+                double appliedP1 = (r.getPorcentaje1() != null) ? r.getPorcentaje1() : p1;
+                double appliedP2 = (r.getPorcentaje2() != null) ? r.getPorcentaje2() : p2;
+                double val = ing * (appliedP1/100.0) * (appliedP2/100.0);
                 if (ing > 0.0 || val > 0.0) {
                     lc.setMontoDolaresA(lc.getMontoDolaresA() + ing);
                     lc.setTutoraA(lc.getTutoraA() + val);
@@ -1854,7 +1947,9 @@ public class FileComparisonController {
                     lc.setNombreTutora(r.getNombreTutora());
                 }
                 double ing = r.getMonedas() != null ? r.getMonedas() : 0.0;
-                double val = ing * 0.12 * 0.40;
+                double appliedP1 = (r.getPorcentaje1() != null) ? r.getPorcentaje1() : p1;
+                double appliedP2 = (r.getPorcentaje2() != null) ? r.getPorcentaje2() : p2;
+                double val = ing * (appliedP1/100.0) * (appliedP2/100.0);
                 if (ing > 0.0 || val > 0.0) {
                     lc.setMontoDolaresB(lc.getMontoDolaresB() + ing);
                     lc.setTutoraB(lc.getTutoraB() + val);
@@ -1877,12 +1972,13 @@ public class FileComparisonController {
                 if (r.getNombreTutora() != null && !r.getNombreTutora().isEmpty() && !"-".equals(r.getNombreTutora())) {
                     oc.setNombreTutora(r.getNombreTutora());
                 }
+                if (r.getNivel() != null && !r.getNivel().isEmpty() && !"-".equals(r.getNivel())) {
+                    oc.setNivel(r.getNivel());
+                }
                 double tm = r.getTotalMonedas() != null ? r.getTotalMonedas() : (r.getMonedas() != null ? r.getMonedas() : 0.0);
-                double ba = r.getBonoAgencia() != null ? r.getBonoAgencia() : 0.0;
                 double rec = r.getRecompensaEvento() != null ? r.getRecompensaEvento() : 0.0;
-                double val = ba + rec;
+                double val = rec;
                 oc.setTotalMonedasA(oc.getTotalMonedasA() + tm);
-                oc.setBonoAgenciaA(oc.getBonoAgenciaA() + ba);
                 oc.setRecompensaA(oc.getRecompensaA() + rec);
                 oc.setTotalA(oc.getTotalA() + val);
             }
@@ -1893,12 +1989,13 @@ public class FileComparisonController {
                 if (r.getNombreTutora() != null && !r.getNombreTutora().isEmpty() && !"-".equals(r.getNombreTutora())) {
                     oc.setNombreTutora(r.getNombreTutora());
                 }
+                if (r.getNivel() != null && !r.getNivel().isEmpty() && !"-".equals(r.getNivel())) {
+                    oc.setNivel(r.getNivel());
+                }
                 double tm = r.getTotalMonedas() != null ? r.getTotalMonedas() : (r.getMonedas() != null ? r.getMonedas() : 0.0);
-                double ba = r.getBonoAgencia() != null ? r.getBonoAgencia() : 0.0;
                 double rec = r.getRecompensaEvento() != null ? r.getRecompensaEvento() : 0.0;
-                double val = ba + rec;
+                double val = rec;
                 oc.setTotalMonedasB(oc.getTotalMonedasB() + tm);
-                oc.setBonoAgenciaB(oc.getBonoAgenciaB() + ba);
                 oc.setRecompensaB(oc.getRecompensaB() + rec);
                 oc.setTotalB(oc.getTotalB() + val);
             }
@@ -1911,9 +2008,10 @@ public class FileComparisonController {
     @GetMapping("/historico/descargar/comparar-salsa")
     public ResponseEntity<byte[]> descargarCompararSalsaExcel(
             @RequestParam("pA") String pA,
-            @RequestParam("pB") String pB) throws Exception {
+            @RequestParam("pB") String pB,
+            @RequestParam(value = "descuento", defaultValue = "60") double descuento) throws Exception {
 
-        List<SalsaComparacion> comparacion = obtenerComparacionSalsa(pA.trim(), pB.trim());
+        List<SalsaComparacion> comparacion = obtenerComparacionSalsa(pA.trim(), pB.trim(), descuento);
 
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("Comparativa SALSA");
@@ -2039,9 +2137,11 @@ public class FileComparisonController {
     @GetMapping("/historico/descargar/comparar-livejoy")
     public ResponseEntity<byte[]> descargarCompararLivejoyExcel(
             @RequestParam("pA") String pA,
-            @RequestParam("pB") String pB) throws Exception {
+            @RequestParam("pB") String pB,
+            @RequestParam(value = "p1", defaultValue = "12") double p1,
+            @RequestParam(value = "p2", defaultValue = "40") double p2) throws Exception {
 
-        List<LivejoyComparacion> comparacion = obtenerComparacionLivejoy(pA.trim(), pB.trim());
+        List<LivejoyComparacion> comparacion = obtenerComparacionLivejoy(pA.trim(), pB.trim(), p1, p2);
 
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("Comparativa LIVEJOY");
@@ -2201,7 +2301,7 @@ public class FileComparisonController {
         String[] headers = { 
             "ID", "Nombre", 
             "Total Monedas " + pA, "Total Monedas " + pB, 
-            "Bono Agencia " + pA + " ($)", "Bono Agencia " + pB + " ($)", 
+            "Nivel", 
             "Recompensa " + pA + " ($)", "Recompensa " + pB + " ($)", 
             "Total Pago " + pA + " ($)", "Total Pago " + pB + " ($)", 
             "Variación ($)", "Total Consolidado ($)", "Tutora (Archivo)" 
@@ -2240,44 +2340,36 @@ public class FileComparisonController {
             cellCoinsB.setCellValue(fila.getTotalMonedasB());
             cellCoinsB.setCellStyle(numberStyle);
             
-            org.apache.poi.ss.usermodel.Cell cellBonoA = row.createCell(4);
-            cellBonoA.setCellValue(fila.getBonoAgenciaA());
-            cellBonoA.setCellStyle(numberStyle);
+            row.createCell(4).setCellValue(fila.getNivel());
             
-            org.apache.poi.ss.usermodel.Cell cellBonoB = row.createCell(5);
-            cellBonoB.setCellValue(fila.getBonoAgenciaB());
-            cellBonoB.setCellStyle(numberStyle);
-            
-            org.apache.poi.ss.usermodel.Cell cellRecA = row.createCell(6);
+            org.apache.poi.ss.usermodel.Cell cellRecA = row.createCell(5);
             cellRecA.setCellValue(fila.getRecompensaA());
             cellRecA.setCellStyle(numberStyle);
             
-            org.apache.poi.ss.usermodel.Cell cellRecB = row.createCell(7);
+            org.apache.poi.ss.usermodel.Cell cellRecB = row.createCell(6);
             cellRecB.setCellValue(fila.getRecompensaB());
             cellRecB.setCellStyle(numberStyle);
             
-            org.apache.poi.ss.usermodel.Cell cellA = row.createCell(8);
+            org.apache.poi.ss.usermodel.Cell cellA = row.createCell(7);
             cellA.setCellValue(fila.getTotalA());
             cellA.setCellStyle(numberStyle);
             
-            org.apache.poi.ss.usermodel.Cell cellB = row.createCell(9);
+            org.apache.poi.ss.usermodel.Cell cellB = row.createCell(8);
             cellB.setCellValue(fila.getTotalB());
             cellB.setCellStyle(numberStyle);
             
-            org.apache.poi.ss.usermodel.Cell cellDiff = row.createCell(10);
+            org.apache.poi.ss.usermodel.Cell cellDiff = row.createCell(9);
             cellDiff.setCellValue(fila.getDiffTotal());
             cellDiff.setCellStyle(numberStyle);
             
-            org.apache.poi.ss.usermodel.Cell cellTotal = row.createCell(11);
+            org.apache.poi.ss.usermodel.Cell cellTotal = row.createCell(10);
             cellTotal.setCellValue(fila.getTotalConsolidado());
             cellTotal.setCellStyle(numberStyle);
             
-            row.createCell(12).setCellValue(fila.getNombreTutora());
+            row.createCell(11).setCellValue(fila.getNombreTutora());
 
             totalCoinsA += fila.getTotalMonedasA();
             totalCoinsB += fila.getTotalMonedasB();
-            totalBonoA += fila.getBonoAgenciaA();
-            totalBonoB += fila.getBonoAgenciaB();
             totalRecA += fila.getRecompensaA();
             totalRecB += fila.getRecompensaB();
             totalA += fila.getTotalA();
@@ -2296,22 +2388,20 @@ public class FileComparisonController {
         totalRow.getCell(2).setCellStyle(totalNumberStyle);
         totalRow.createCell(3).setCellValue(totalCoinsB);
         totalRow.getCell(3).setCellStyle(totalNumberStyle);
-        totalRow.createCell(4).setCellValue(totalBonoA);
-        totalRow.getCell(4).setCellStyle(totalNumberStyle);
-        totalRow.createCell(5).setCellValue(totalBonoB);
+        totalRow.createCell(4).setCellValue("");
+        totalRow.getCell(4).setCellStyle(totalLabelStyle);
+        totalRow.createCell(5).setCellValue(totalRecA);
         totalRow.getCell(5).setCellStyle(totalNumberStyle);
-        totalRow.createCell(6).setCellValue(totalRecA);
+        totalRow.createCell(6).setCellValue(totalRecB);
         totalRow.getCell(6).setCellStyle(totalNumberStyle);
-        totalRow.createCell(7).setCellValue(totalRecB);
+        totalRow.createCell(7).setCellValue(totalA);
         totalRow.getCell(7).setCellStyle(totalNumberStyle);
-        totalRow.createCell(8).setCellValue(totalA);
+        totalRow.createCell(8).setCellValue(totalB);
         totalRow.getCell(8).setCellStyle(totalNumberStyle);
-        totalRow.createCell(9).setCellValue(totalB);
+        totalRow.createCell(9).setCellValue(totalDiff);
         totalRow.getCell(9).setCellStyle(totalNumberStyle);
-        totalRow.createCell(10).setCellValue(totalDiff);
+        totalRow.createCell(10).setCellValue(totalSuma);
         totalRow.getCell(10).setCellStyle(totalNumberStyle);
-        totalRow.createCell(11).setCellValue(totalSuma);
-        totalRow.getCell(11).setCellStyle(totalNumberStyle);
 
         for (int i = 0; i < headers.length; i++) {
             sheet.autoSizeColumn(i);

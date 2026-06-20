@@ -68,6 +68,7 @@ public class HistoricoService {
                     sheet = sheet.trim().toUpperCase();
                 }
                 String nombreTutora = obtenerValor(data, "NombreTutora");
+                String nivel = obtenerValor(data, "Nivel");
 
                 // Crear y guardar registro
                 HistoricoIngreso historico = new HistoricoIngreso(
@@ -75,6 +76,7 @@ public class HistoricoService {
                         recompensaEvento, bonusTop100, loyaltyCredits, semana, pais, whatsapp, fuente,
                         sheet, periodoComparacion);
                 historico.setNombreTutora(nombreTutora);
+                historico.setNivel(nivel);
 
                 historicoRepository.save(historico);
                 guardados++;
@@ -238,5 +240,32 @@ public class HistoricoService {
         if (tieneCsv)
             return "CSV";
         return "Desconocido";
+    }
+
+    @Transactional
+    public void actualizarPorcentajes(String periodoComparacion, String sheet, Double descuento, Double p1, Double p2) {
+        List<HistoricoIngreso> registros = historicoRepository.findByPeriodoComparacionOrderByFechaRegistroDesc(periodoComparacion);
+        String targetSheet = sheet.trim().toUpperCase();
+        for (HistoricoIngreso reg : registros) {
+            if (targetSheet.equals(normalizeSheet(reg.getSheet()))) {
+                if (descuento != null) {
+                    reg.setPorcentajeDescuento(descuento);
+                }
+                if (p1 != null) {
+                    reg.setPorcentaje1(p1);
+                }
+                if (p2 != null) {
+                    reg.setPorcentaje2(p2);
+                }
+                historicoRepository.save(reg);
+            }
+        }
+        logger.info("Actualizados porcentajes para el periodo '{}' y plataforma '{}': descuento={}, p1={}, p2={}", 
+                periodoComparacion, sheet, descuento, p1, p2);
+    }
+
+    private String normalizeSheet(String sheet) {
+        if (sheet == null) return "";
+        return sheet.trim().toUpperCase();
     }
 }

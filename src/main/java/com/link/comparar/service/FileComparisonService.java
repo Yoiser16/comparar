@@ -116,7 +116,7 @@ public class FileComparisonService {
                             if (isOliveFile) {
                                 if (displayName.equals("Puntos Canjeables") ||
                                         displayName.equals("Ingresos Streamer") ||
-                                        displayName.equals("Pago Agencia")) {
+                                        displayName.equals("Nivel")) {
                                     data.put(displayName, value.trim());
                                 }
                             } else {
@@ -799,6 +799,7 @@ public class FileComparisonService {
         // Campos específicos de OLIVE
         displayNames.put("redeemable points", "Puntos Canjeables");
         displayNames.put("redeemable level", "Nivel Canjeable");
+        displayNames.put("level", "Nivel");
         displayNames.put("streamers income", "Ingresos Streamer");
         displayNames.put("agency payment", "Pago Agencia");
         displayNames.put("agency commission", "Comisión Agencia");
