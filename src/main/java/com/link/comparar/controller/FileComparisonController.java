@@ -306,6 +306,33 @@ public class FileComparisonController {
         }
     }
 
+    @GetMapping("/download/olive-resumen")
+    public ResponseEntity<byte[]> downloadOliveResumen(
+            @SessionAttribute("comparisonResult") ComparisonResult result,
+            jakarta.servlet.http.HttpSession session,
+            @RequestParam(value = "p1", defaultValue = "60") double p1,
+            @RequestParam(value = "p2", defaultValue = "40") double p2) {
+        try {
+            // Guardar en base de datos los porcentajes personalizados usados
+            String periodo = (String) session.getAttribute("periodoComparacion");
+            if (periodo != null) {
+                historicoService.actualizarPorcentajes(periodo, "OLIVE", null, p1, p2);
+            }
+            byte[] data = generateOliveResumenExcel(result.getMatchingRecords(), p1, p2);
+            String filename = "olive_resumen.xlsx";
+            MediaType mediaType = MediaType
+                    .parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(mediaType);
+            headers.setContentDispositionFormData("attachment", filename);
+            headers.setContentLength(data.length);
+            return ResponseEntity.ok().headers(headers).body(data);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     @GetMapping("/download/csv-only")
     public ResponseEntity<byte[]> downloadCsvOnly(@SessionAttribute("comparisonResult") ComparisonResult result) {
         try {
@@ -672,12 +699,131 @@ public class FileComparisonController {
         return baos.toByteArray();
     }
 
+    private byte[] generateOliveResumenExcel(List<FileRecord> records, double oliveP1, double oliveP2) throws Exception {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("OLIVE");
+
+        // Filtrar solo registros de OLIVE
+        List<FileRecord> oliveRecords = records.stream()
+            .filter(r -> isRecordFromSheet(r, "OLIVE"))
+            .toList();
+
+        if (oliveRecords.isEmpty()) {
+            Row row = sheet.createRow(0);
+            org.apache.poi.ss.usermodel.Cell cell = row.createCell(0);
+            cell.setCellValue("No hay registros de OLIVE para exportar");
+            workbook.write(baos);
+            workbook.close();
+            return baos.toByteArray();
+        }
+
+        // Estilo para encabezados (Color Dorado)
+        CellStyle headerStyle = workbook.createCellStyle();
+        Font headerFont = workbook.createFont();
+        headerFont.setBold(true);
+        headerStyle.setFont(headerFont);
+        headerStyle.setFillForegroundColor(IndexedColors.GOLD.getIndex());
+        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        DataFormat dataFormat = workbook.createDataFormat();
+        
+        CellStyle numberStyle = workbook.createCellStyle();
+        numberStyle.setDataFormat(dataFormat.getFormat("#,##0.00"));
+
+        CellStyle integerStyle = workbook.createCellStyle();
+        integerStyle.setDataFormat(dataFormat.getFormat("#,##0"));
+
+        CellStyle currencyStyle = workbook.createCellStyle();
+        currencyStyle.setDataFormat(dataFormat.getFormat("$#,##0.00"));
+
+        // Estilo para el total de tutora
+        CellStyle totalTutoraStyle = workbook.createCellStyle();
+        totalTutoraStyle.setDataFormat(dataFormat.getFormat("$#,##0.00"));
+        Font totalFont = workbook.createFont();
+        totalFont.setBold(true);
+        totalTutoraStyle.setFont(totalFont);
+        totalTutoraStyle.setFillForegroundColor(IndexedColors.LIGHT_GREEN.getIndex());
+        totalTutoraStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        // Crear encabezados exactos del mockup
+        Row headerRow = sheet.createRow(0);
+        String[] headers = { "ID OLIVE", "PUNTOS", "MONTO DOL", "NOMBRE STREAMERS", "TUTORA" };
+        for (int i = 0; i < headers.length; i++) {
+            org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        int rowIndex = 1;
+        double totalPagoTutora = 0.0;
+
+        for (FileRecord record : oliveRecords) {
+            String apStr = getFieldValue(record, "CSV_Pago Agencia", "CSV_Agency Payment", "CSV_Comisión Agencia", "CSV_Bono de Agencia");
+            double ap = parseOptionalDouble(apStr) != null ? parseOptionalDouble(apStr) : 0.0;
+            if (ap == 0.0) {
+                continue;
+            }
+
+            Row row = sheet.createRow(rowIndex++);
+
+            // Column 0: ID OLIVE (como String para evitar notación científica)
+            row.createCell(0).setCellValue(record.getId() != null ? record.getId() : "");
+
+            // Column 1: PUNTOS (Puntos Canjeables / Redeemable Points)
+            String recStr = getFieldValue(record, "CSV_Puntos Canjeables", "CSV_Redeemable Points", "CSV_Recompensa Evento", "CSV_Recompensa");
+            double recompensa = parseOptionalDouble(recStr) != null ? parseOptionalDouble(recStr) : 0.0;
+            org.apache.poi.ss.usermodel.Cell cellRec = row.createCell(1);
+            cellRec.setCellValue(recompensa);
+            cellRec.setCellStyle(integerStyle);
+
+            // Column 2: MONTO DOL (Monto Dólares / Streamers Income / Monedas)
+            String ingresosStr = getFieldValue(record, "CSV_Ingresos Streamer", "CSV_Monedas", "CSV_Ingresos", "CSV_Total Coins", "CSV_Coins");
+            double monedas = parseOptionalDouble(ingresosStr) != null ? parseOptionalDouble(ingresosStr) : 0.0;
+            org.apache.poi.ss.usermodel.Cell cellCoins = row.createCell(2);
+            cellCoins.setCellValue(monedas);
+            cellCoins.setCellStyle(currencyStyle);
+
+            // Column 3: NOMBRE STREAMERS
+            String nombre = getFieldValue(record, "CSV_Nombre Completo", "CSV_Nombre", "Excel_Nombre Completo", "Excel_Nombre");
+            row.createCell(3).setCellValue(nombre != null ? nombre : "");
+
+            // Column 4: TUTORA (Calculado)
+            String brStr = getFieldValue(record, "CSV_Bonus Revenue");
+            double br = parseOptionalDouble(brStr) != null ? parseOptionalDouble(brStr) : 0.0;
+
+            double comisionBase = monedas * 0.10;
+            double pagoTutora = roundTwoDecimals((comisionBase * (oliveP2 / 100.0)) + (br / 3.0));
+
+            org.apache.poi.ss.usermodel.Cell cellTutora = row.createCell(4);
+            cellTutora.setCellValue(pagoTutora);
+            cellTutora.setCellStyle(currencyStyle);
+
+            totalPagoTutora += pagoTutora;
+        }
+
+        // Agregar fila de TOTAL (solo sumatoria bajo la columna TUTORA)
+        Row totalRow = sheet.createRow(rowIndex);
+        org.apache.poi.ss.usermodel.Cell cellTotal = totalRow.createCell(4);
+        cellTotal.setCellValue(roundTwoDecimals(totalPagoTutora));
+        cellTotal.setCellStyle(totalTutoraStyle);
+
+        for (int i = 0; i < headers.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+
+        workbook.write(baos);
+        workbook.close();
+        return baos.toByteArray();
+    }
+
     private Double parseOptionalDouble(String value) {
         if (value == null || value.trim().isEmpty()) {
             return null;
         }
         try {
-            return Double.parseDouble(value.replace(",", "").trim());
+            String cleaned = value.replace("$", "").replace(",", "").trim();
+            return Double.parseDouble(cleaned);
         } catch (NumberFormatException e) {
             return null;
         }
@@ -706,17 +852,21 @@ public class FileComparisonController {
             @RequestParam(value = "descuento", defaultValue = "60") double descuento,
             @RequestParam(value = "p1", defaultValue = "12") double p1,
             @RequestParam(value = "p2", defaultValue = "40") double p2,
+            @RequestParam(value = "oliveP1", defaultValue = "60") double oliveP1,
+            @RequestParam(value = "oliveP2", defaultValue = "40") double oliveP2,
             Model model) {
         List<HistoricoIngreso> registros = historicoService.obtenerTodosLosRegistros();
         List<String> periodosDisponibles = historicoService.obtenerPeriodosDisponibles();
 
-        prepararDatosHistoricoPorSheet(model, registros, periodosDisponibles, null, descuento, p1, p2);
+        prepararDatosHistoricoPorSheet(model, registros, periodosDisponibles, null, descuento, p1, p2, oliveP1, oliveP2);
 
         // Activar pestaña por defecto
         model.addAttribute("activeTab", tab != null ? tab.trim().toLowerCase() : "consolidado");
         model.addAttribute("descuento", descuento);
         model.addAttribute("p1", p1);
         model.addAttribute("p2", p2);
+        model.addAttribute("oliveP1", oliveP1);
+        model.addAttribute("oliveP2", oliveP2);
 
         // Si hay una comparación activa
         if (compPA != null && !compPA.trim().isEmpty() && compPB != null && !compPB.trim().isEmpty() && tab != null) {
@@ -746,7 +896,7 @@ public class FileComparisonController {
                 model.addAttribute("compLivejoyTotalDiff", totalB - totalA);
                 model.addAttribute("compLivejoyTotalSuma", totalA + totalB);
             } else if ("olive".equals(activeTab)) {
-                List<OliveComparacion> comparacion = obtenerComparacionOlive(pA, pB);
+                List<OliveComparacion> comparacion = obtenerComparacionOlive(pA, pB, oliveP1, oliveP2);
                 model.addAttribute("oliveComparacion", comparacion);
                 double totalA = comparacion.stream().mapToDouble(OliveComparacion::getTotalA).sum();
                 double totalB = comparacion.stream().mapToDouble(OliveComparacion::getTotalB).sum();
@@ -1019,7 +1169,9 @@ public class FileComparisonController {
             @RequestParam("periodo") String periodo,
             @RequestParam(value = "descuento", defaultValue = "60") double descuento,
             @RequestParam(value = "p1", defaultValue = "12") double p1,
-            @RequestParam(value = "p2", defaultValue = "40") double p2) throws Exception {
+            @RequestParam(value = "p2", defaultValue = "40") double p2,
+            @RequestParam(value = "oliveP1", defaultValue = "60") double oliveP1,
+            @RequestParam(value = "oliveP2", defaultValue = "40") double oliveP2) throws Exception {
 
         if (periodo == null || periodo.trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
@@ -1071,7 +1223,7 @@ public class FileComparisonController {
         }
 
         Sheet oliveSheet = workbook.createSheet("OLIVE");
-        String[] oliveHeaders = { "ID", "Nombre", "Ingresos", "Nivel", "Recompensa", "Tutora (Archivo)" };
+        String[] oliveHeaders = { "ID", "Nombre", "MONTO DOLARES", "Nivel", "Puntos Canjeables", "Pago Agencia", "Bonus Revenue", "Pago Tutora", "Tutora (Archivo)" };
         Row oliveHeaderRow = oliveSheet.createRow(0);
         for (int i = 0; i < oliveHeaders.length; i++) {
             org.apache.poi.ss.usermodel.Cell cell = oliveHeaderRow.createCell(i);
@@ -1088,9 +1240,10 @@ public class FileComparisonController {
         double livejoyTotalMonto = 0.0;
         double livejoyTotalTutora = 0.0;
         double oliveTotalMonedas = 0.0;
-        double oliveTotalMonedasGeneral = 0.0;
-        double oliveTotalBonoAgencia = 0.0;
         double oliveTotalRecompensa = 0.0;
+        double oliveTotalBonoAgencia = 0.0;
+        double oliveTotalBonusRevenue = 0.0;
+        double oliveTotalPagoTutora = 0.0;
 
         for (HistoricoIngreso registro : registros) {
             String sheet = normalizeSheet(registro.getSheet());
@@ -1137,18 +1290,47 @@ public class FileComparisonController {
                 double monedas = roundTwoDecimals(registro.getMonedas() != null ? registro.getMonedas() : 0.0);
                 String nivel = registro.getNivel() != null ? registro.getNivel() : "-";
                 double recompensa = roundTwoDecimals(registro.getRecompensaEvento() != null ? registro.getRecompensaEvento() : 0.0);
+                
+                double ap = registro.getBonoAgencia() != null ? registro.getBonoAgencia() : 0.0;
+                double br = registro.getBonusRevenue() != null ? registro.getBonusRevenue() : 0.0;
+                double p1Val = registro.getPorcentaje1() != null ? registro.getPorcentaje1() : oliveP1;
+                double p2Val = registro.getPorcentaje2() != null ? registro.getPorcentaje2() : oliveP2;
+
+                double comisionBase = monedas * 0.10;
+                double pagoTutora = roundTwoDecimals((comisionBase * (p2Val / 100.0)) + (br / 3.0));
 
                 row.createCell(0).setCellValue(registro.getIdentificacion() != null ? registro.getIdentificacion() : "");
                 row.createCell(1).setCellValue(registro.getNombreCompleto() != null ? registro.getNombreCompleto() : "");
-                row.createCell(2).setCellValue(monedas);
-                row.getCell(2).setCellStyle(numberStyle);
+                
+                org.apache.poi.ss.usermodel.Cell cellCoins = row.createCell(2);
+                cellCoins.setCellValue(monedas);
+                cellCoins.setCellStyle(numberStyle);
+                
                 row.createCell(3).setCellValue(nivel);
-                row.createCell(4).setCellValue(recompensa);
-                row.getCell(4).setCellStyle(numberStyle);
-                row.createCell(5).setCellValue(registro.getNombreTutora() != null ? registro.getNombreTutora() : "-");
+                
+                org.apache.poi.ss.usermodel.Cell cellRec = row.createCell(4);
+                cellRec.setCellValue(recompensa);
+                cellRec.setCellStyle(numberStyle);
+
+                org.apache.poi.ss.usermodel.Cell cellAp = row.createCell(5);
+                cellAp.setCellValue(ap);
+                cellAp.setCellStyle(numberStyle);
+
+                org.apache.poi.ss.usermodel.Cell cellBr = row.createCell(6);
+                cellBr.setCellValue(br);
+                cellBr.setCellStyle(numberStyle);
+
+                org.apache.poi.ss.usermodel.Cell cellTutora = row.createCell(7);
+                cellTutora.setCellValue(pagoTutora);
+                cellTutora.setCellStyle(numberStyle);
+
+                row.createCell(8).setCellValue(registro.getNombreTutora() != null ? registro.getNombreTutora() : "-");
 
                 oliveTotalMonedas += monedas;
                 oliveTotalRecompensa += recompensa;
+                oliveTotalBonoAgencia += ap;
+                oliveTotalBonusRevenue += br;
+                oliveTotalPagoTutora += pagoTutora;
             }
         }
 
@@ -1171,12 +1353,27 @@ public class FileComparisonController {
         Row oliveTotalRow = oliveSheet.createRow(oliveRowNum);
         oliveTotalRow.createCell(1).setCellValue("TOTAL");
         oliveTotalRow.getCell(1).setCellStyle(totalLabelStyle);
+        
         oliveTotalRow.createCell(2).setCellValue(roundTwoDecimals(oliveTotalMonedas));
         oliveTotalRow.getCell(2).setCellStyle(totalNumberStyle);
+        
         oliveTotalRow.createCell(3).setCellValue("");
         oliveTotalRow.getCell(3).setCellStyle(totalLabelStyle);
+        
         oliveTotalRow.createCell(4).setCellValue(roundTwoDecimals(oliveTotalRecompensa));
         oliveTotalRow.getCell(4).setCellStyle(totalNumberStyle);
+
+        oliveTotalRow.createCell(5).setCellValue(roundTwoDecimals(oliveTotalBonoAgencia));
+        oliveTotalRow.getCell(5).setCellStyle(totalNumberStyle);
+
+        oliveTotalRow.createCell(6).setCellValue(roundTwoDecimals(oliveTotalBonusRevenue));
+        oliveTotalRow.getCell(6).setCellStyle(totalNumberStyle);
+
+        oliveTotalRow.createCell(7).setCellValue(roundTwoDecimals(oliveTotalPagoTutora));
+        oliveTotalRow.getCell(7).setCellStyle(totalNumberStyle);
+        
+        oliveTotalRow.createCell(8).setCellValue("");
+        oliveTotalRow.getCell(8).setCellStyle(totalLabelStyle);
 
         for (int i = 0; i < salsaHeaders.length; i++) {
             salsaSheet.autoSizeColumn(i);
@@ -1411,7 +1608,7 @@ public class FileComparisonController {
 
     private void prepararDatosHistoricoPorSheet(Model model, List<HistoricoIngreso> registros, 
                                                  List<String> periodosDisponibles, String periodoSeleccionado) {
-        prepararDatosHistoricoPorSheet(model, registros, periodosDisponibles, periodoSeleccionado, 60.0, 12.0, 40.0);
+        prepararDatosHistoricoPorSheet(model, registros, periodosDisponibles, periodoSeleccionado, 60.0, 12.0, 40.0, 60.0, 40.0);
     }
 
     /**
@@ -1420,7 +1617,7 @@ public class FileComparisonController {
      */
     private void prepararDatosHistoricoPorSheet(Model model, List<HistoricoIngreso> registros, 
                                                  List<String> periodosDisponibles, String periodoSeleccionado,
-                                                 double descuento, double p1, double p2) {
+                                                 double descuento, double p1, double p2, double oliveP1, double oliveP2) {
         // Agrupar registros por sheet
         List<Map<String, Object>> salsaRecords = new ArrayList<>();
         List<Map<String, Object>> livejoyRecords = new ArrayList<>();
@@ -1471,13 +1668,26 @@ public class FileComparisonController {
                 data.put("id", registro.getIdentificacion());
                 data.put("nombre", registro.getNombreCompleto());
                 data.put("monedas", registro.getMonedas() != null ? registro.getMonedas() : 0.0);
-                data.put("totalMonedas", registro.getTotalMonedas() != null ? registro.getTotalMonedas() : 0.0);
                 data.put("nivel", registro.getNivel() != null ? registro.getNivel() : "-");
                 data.put("recompensa", registro.getRecompensaEvento() != null ? registro.getRecompensaEvento() : 0.0);
-                data.put("pais", registro.getPais());
                 data.put("periodo", registro.getPeriodoComparacion());
                 data.put("fechaRegistro", registro.getFechaRegistro());
                 data.put("nombreTutora", registro.getNombreTutora() != null ? registro.getNombreTutora() : "-");
+
+                double ap = registro.getBonoAgencia() != null ? registro.getBonoAgencia() : 0.0;
+                double br = registro.getBonusRevenue() != null ? registro.getBonusRevenue() : 0.0;
+                double p1Val = registro.getPorcentaje1() != null ? registro.getPorcentaje1() : oliveP1;
+                double p2Val = registro.getPorcentaje2() != null ? registro.getPorcentaje2() : oliveP2;
+
+                double comisionBase = (registro.getMonedas() != null ? registro.getMonedas() : 0.0) * 0.10;
+                double pagoChica = comisionBase * (p1Val / 100.0);
+                double pagoTutora = (comisionBase * (p2Val / 100.0)) + (br / 3.0);
+
+                data.put("pagoAgencia", ap);
+                data.put("bonusRevenue", br);
+                data.put("pagoChica", pagoChica);
+                data.put("pagoTutora", pagoTutora);
+                data.put("tutora", pagoTutora);
                 
                 oliveRecords.add(data);
             }
@@ -1488,6 +1698,9 @@ public class FileComparisonController {
                 .mapToDouble(r -> (Double) r.get("tutora"))
                 .sum();
         double totalTutoraLivejoy = livejoyRecords.stream()
+                .mapToDouble(r -> (Double) r.get("tutora"))
+                .sum();
+        double totalTutoraOlive = oliveRecords.stream()
                 .mapToDouble(r -> (Double) r.get("tutora"))
                 .sum();
         
@@ -1518,6 +1731,7 @@ public class FileComparisonController {
         model.addAttribute("oliveRecords", oliveRecords);
         model.addAttribute("totalTutoraSalsa", totalTutoraSalsa);
         model.addAttribute("totalTutoraLivejoy", totalTutoraLivejoy);
+        model.addAttribute("totalTutoraOlive", totalTutoraOlive);
         model.addAttribute("periodosSalsa", periodosSalsa);
         model.addAttribute("periodosLivejoy", periodosLivejoy);
         model.addAttribute("periodosOlive", periodosOlive);
@@ -1683,7 +1897,15 @@ public class FileComparisonController {
         String excelSheet = normalizeSheet(record.getData().get("Excel_Sheet"));
         String plainSheet = normalizeSheet(record.getData().get("Sheet"));
         String expected = normalizeSheet(expectedSheet);
-        return expected.equals(excelSheet) || expected.equals(plainSheet);
+        if (expected.equals(excelSheet) || expected.equals(plainSheet)) {
+            return true;
+        }
+        if ("OLIVE".equals(expected)) {
+            return record.getData().containsKey("CSV_Puntos Canjeables") ||
+                   record.getData().containsKey("CSV_Pago Agencia") ||
+                   record.getData().containsKey("CSV_Bonus Revenue");
+        }
+        return false;
     }
 
     private String normalizeSheet(String sheet) {
@@ -1836,6 +2058,12 @@ public class FileComparisonController {
         private double recompensaB;
         private double totalA;
         private double totalB;
+        private double bonusRevenueA;
+        private double bonusRevenueB;
+        private double pagoChicaA;
+        private double pagoChicaB;
+        private double pagoTutoraA;
+        private double pagoTutoraB;
 
         public OliveComparacion(String id, String nombre) {
             this.id = id;
@@ -1864,6 +2092,18 @@ public class FileComparisonController {
         public void setTotalA(double totalA) { this.totalA = totalA; }
         public double getTotalB() { return totalB; }
         public void setTotalB(double totalB) { this.totalB = totalB; }
+        public double getBonusRevenueA() { return bonusRevenueA; }
+        public void setBonusRevenueA(double bonusRevenueA) { this.bonusRevenueA = bonusRevenueA; }
+        public double getBonusRevenueB() { return bonusRevenueB; }
+        public void setBonusRevenueB(double bonusRevenueB) { this.bonusRevenueB = bonusRevenueB; }
+        public double getPagoChicaA() { return pagoChicaA; }
+        public void setPagoChicaA(double pagoChicaA) { this.pagoChicaA = pagoChicaA; }
+        public double getPagoChicaB() { return pagoChicaB; }
+        public void setPagoChicaB(double pagoChicaB) { this.pagoChicaB = pagoChicaB; }
+        public double getPagoTutoraA() { return pagoTutoraA; }
+        public void setPagoTutoraA(double pagoTutoraA) { this.pagoTutoraA = pagoTutoraA; }
+        public double getPagoTutoraB() { return pagoTutoraB; }
+        public void setPagoTutoraB(double pagoTutoraB) { this.pagoTutoraB = pagoTutoraB; }
         public double getDiffTotal() { return totalB - totalA; }
         public double getTotalConsolidado() { return totalA + totalB; }
     }
@@ -1954,7 +2194,7 @@ public class FileComparisonController {
         return list;
     }
 
-    private List<OliveComparacion> obtenerComparacionOlive(String pA, String pB) {
+    private List<OliveComparacion> obtenerComparacionOlive(String pA, String pB, double p1, double p2) {
         List<HistoricoIngreso> regA = historicoService.buscarPorPeriodo(pA);
         List<HistoricoIngreso> regB = historicoService.buscarPorPeriodo(pB);
 
@@ -1970,10 +2210,23 @@ public class FileComparisonController {
                 }
                 double tm = r.getMonedas() != null ? r.getMonedas() : 0.0;
                 double rec = r.getRecompensaEvento() != null ? r.getRecompensaEvento() : 0.0;
-                double val = rec;
+
+                double ap = r.getBonoAgencia() != null ? r.getBonoAgencia() : 0.0;
+                double br = r.getBonusRevenue() != null ? r.getBonusRevenue() : 0.0;
+                double p1Val = r.getPorcentaje1() != null ? r.getPorcentaje1() : p1;
+                double p2Val = r.getPorcentaje2() != null ? r.getPorcentaje2() : p2;
+
+                double comisionBase = tm * 0.10;
+                double pagoChica = comisionBase * (p1Val / 100.0);
+                double pagoTutora = (comisionBase * (p2Val / 100.0)) + (br / 3.0);
+
                 oc.setTotalMonedasA(oc.getTotalMonedasA() + tm);
                 oc.setRecompensaA(oc.getRecompensaA() + rec);
-                oc.setTotalA(oc.getTotalA() + val);
+                oc.setBonoAgenciaA(oc.getBonoAgenciaA() + ap);
+                oc.setBonusRevenueA(oc.getBonusRevenueA() + br);
+                oc.setPagoChicaA(oc.getPagoChicaA() + pagoChica);
+                oc.setPagoTutoraA(oc.getPagoTutoraA() + pagoTutora);
+                oc.setTotalA(oc.getTotalA() + pagoTutora);
             }
         }
         for (HistoricoIngreso r : regB) {
@@ -1987,10 +2240,23 @@ public class FileComparisonController {
                 }
                 double tm = r.getMonedas() != null ? r.getMonedas() : 0.0;
                 double rec = r.getRecompensaEvento() != null ? r.getRecompensaEvento() : 0.0;
-                double val = rec;
+
+                double ap = r.getBonoAgencia() != null ? r.getBonoAgencia() : 0.0;
+                double br = r.getBonusRevenue() != null ? r.getBonusRevenue() : 0.0;
+                double p1Val = r.getPorcentaje1() != null ? r.getPorcentaje1() : p1;
+                double p2Val = r.getPorcentaje2() != null ? r.getPorcentaje2() : p2;
+
+                double comisionBase = tm * 0.10;
+                double pagoChica = comisionBase * (p1Val / 100.0);
+                double pagoTutora = (comisionBase * (p2Val / 100.0)) + (br / 3.0);
+
                 oc.setTotalMonedasB(oc.getTotalMonedasB() + tm);
                 oc.setRecompensaB(oc.getRecompensaB() + rec);
-                oc.setTotalB(oc.getTotalB() + val);
+                oc.setBonoAgenciaB(oc.getBonoAgenciaB() + ap);
+                oc.setBonusRevenueB(oc.getBonusRevenueB() + br);
+                oc.setPagoChicaB(oc.getPagoChicaB() + pagoChica);
+                oc.setPagoTutoraB(oc.getPagoTutoraB() + pagoTutora);
+                oc.setTotalB(oc.getTotalB() + pagoTutora);
             }
         }
         List<OliveComparacion> list = new ArrayList<>(map.values());
@@ -2260,9 +2526,11 @@ public class FileComparisonController {
     @GetMapping("/historico/descargar/comparar-olive")
     public ResponseEntity<byte[]> descargarCompararOliveExcel(
             @RequestParam("pA") String pA,
-            @RequestParam("pB") String pB) throws Exception {
+            @RequestParam("pB") String pB,
+            @RequestParam(value = "oliveP1", defaultValue = "60") double oliveP1,
+            @RequestParam(value = "oliveP2", defaultValue = "40") double oliveP2) throws Exception {
 
-        List<OliveComparacion> comparacion = obtenerComparacionOlive(pA.trim(), pB.trim());
+        List<OliveComparacion> comparacion = obtenerComparacionOlive(pA.trim(), pB.trim(), oliveP1, oliveP2);
 
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("Comparativa OLIVE");
@@ -2293,10 +2561,12 @@ public class FileComparisonController {
 
         String[] headers = { 
             "ID", "Nombre", 
-            "Ingresos " + pA, "Ingresos " + pB, 
+            "MONTO DOLARES " + pA, "MONTO DOLARES " + pB, 
             "Nivel", 
-            "Recompensa " + pA + " ($)", "Recompensa " + pB + " ($)", 
-            "Total Pago " + pA + " ($)", "Total Pago " + pB + " ($)", 
+            "Puntos Canjeables " + pA + " ($)", "Puntos Canjeables " + pB + " ($)", 
+            "Pago Agencia " + pA + " ($)", "Pago Agencia " + pB + " ($)", 
+            "Bonus Revenue " + pA + " ($)", "Bonus Revenue " + pB + " ($)", 
+            "Pago Tutora " + pA + " ($)", "Pago Tutora " + pB + " ($)", 
             "Variación ($)", "Total Consolidado ($)", "Tutora (Archivo)" 
         };
 
@@ -2310,12 +2580,14 @@ public class FileComparisonController {
         int rowNum = 1;
         double totalCoinsA = 0.0;
         double totalCoinsB = 0.0;
-        double totalBonoA = 0.0;
-        double totalBonoB = 0.0;
         double totalRecA = 0.0;
         double totalRecB = 0.0;
-        double totalA = 0.0;
-        double totalB = 0.0;
+        double totalBonoA = 0.0;
+        double totalBonoB = 0.0;
+        double totalBRA = 0.0;
+        double totalBRB = 0.0;
+        double totalTutoraA = 0.0;
+        double totalTutoraB = 0.0;
         double totalDiff = 0.0;
         double totalSuma = 0.0;
 
@@ -2342,31 +2614,51 @@ public class FileComparisonController {
             org.apache.poi.ss.usermodel.Cell cellRecB = row.createCell(6);
             cellRecB.setCellValue(fila.getRecompensaB());
             cellRecB.setCellStyle(numberStyle);
+
+            org.apache.poi.ss.usermodel.Cell cellBonoA = row.createCell(7);
+            cellBonoA.setCellValue(fila.getBonoAgenciaA());
+            cellBonoA.setCellStyle(numberStyle);
+
+            org.apache.poi.ss.usermodel.Cell cellBonoB = row.createCell(8);
+            cellBonoB.setCellValue(fila.getBonoAgenciaB());
+            cellBonoB.setCellStyle(numberStyle);
+
+            org.apache.poi.ss.usermodel.Cell cellBRA = row.createCell(9);
+            cellBRA.setCellValue(fila.getBonusRevenueA());
+            cellBRA.setCellStyle(numberStyle);
+
+            org.apache.poi.ss.usermodel.Cell cellBRB = row.createCell(10);
+            cellBRB.setCellValue(fila.getBonusRevenueB());
+            cellBRB.setCellStyle(numberStyle);
             
-            org.apache.poi.ss.usermodel.Cell cellA = row.createCell(7);
-            cellA.setCellValue(fila.getTotalA());
-            cellA.setCellStyle(numberStyle);
+            org.apache.poi.ss.usermodel.Cell cellTutoraA = row.createCell(11);
+            cellTutoraA.setCellValue(fila.getPagoTutoraA());
+            cellTutoraA.setCellStyle(numberStyle);
             
-            org.apache.poi.ss.usermodel.Cell cellB = row.createCell(8);
-            cellB.setCellValue(fila.getTotalB());
-            cellB.setCellStyle(numberStyle);
+            org.apache.poi.ss.usermodel.Cell cellTutoraB = row.createCell(12);
+            cellTutoraB.setCellValue(fila.getPagoTutoraB());
+            cellTutoraB.setCellStyle(numberStyle);
             
-            org.apache.poi.ss.usermodel.Cell cellDiff = row.createCell(9);
+            org.apache.poi.ss.usermodel.Cell cellDiff = row.createCell(13);
             cellDiff.setCellValue(fila.getDiffTotal());
             cellDiff.setCellStyle(numberStyle);
             
-            org.apache.poi.ss.usermodel.Cell cellTotal = row.createCell(10);
+            org.apache.poi.ss.usermodel.Cell cellTotal = row.createCell(14);
             cellTotal.setCellValue(fila.getTotalConsolidado());
             cellTotal.setCellStyle(numberStyle);
             
-            row.createCell(11).setCellValue(fila.getNombreTutora());
+            row.createCell(15).setCellValue(fila.getNombreTutora());
 
             totalCoinsA += fila.getTotalMonedasA();
             totalCoinsB += fila.getTotalMonedasB();
             totalRecA += fila.getRecompensaA();
             totalRecB += fila.getRecompensaB();
-            totalA += fila.getTotalA();
-            totalB += fila.getTotalB();
+            totalBonoA += fila.getBonoAgenciaA();
+            totalBonoB += fila.getBonoAgenciaB();
+            totalBRA += fila.getBonusRevenueA();
+            totalBRB += fila.getBonusRevenueB();
+            totalTutoraA += fila.getPagoTutoraA();
+            totalTutoraB += fila.getPagoTutoraB();
             totalDiff += fila.getDiffTotal();
             totalSuma += fila.getTotalConsolidado();
         }
@@ -2387,14 +2679,22 @@ public class FileComparisonController {
         totalRow.getCell(5).setCellStyle(totalNumberStyle);
         totalRow.createCell(6).setCellValue(totalRecB);
         totalRow.getCell(6).setCellStyle(totalNumberStyle);
-        totalRow.createCell(7).setCellValue(totalA);
+        totalRow.createCell(7).setCellValue(totalBonoA);
         totalRow.getCell(7).setCellStyle(totalNumberStyle);
-        totalRow.createCell(8).setCellValue(totalB);
+        totalRow.createCell(8).setCellValue(totalBonoB);
         totalRow.getCell(8).setCellStyle(totalNumberStyle);
-        totalRow.createCell(9).setCellValue(totalDiff);
+        totalRow.createCell(9).setCellValue(totalBRA);
         totalRow.getCell(9).setCellStyle(totalNumberStyle);
-        totalRow.createCell(10).setCellValue(totalSuma);
+        totalRow.createCell(10).setCellValue(totalBRB);
         totalRow.getCell(10).setCellStyle(totalNumberStyle);
+        totalRow.createCell(11).setCellValue(totalTutoraA);
+        totalRow.getCell(11).setCellStyle(totalNumberStyle);
+        totalRow.createCell(12).setCellValue(totalTutoraB);
+        totalRow.getCell(12).setCellStyle(totalNumberStyle);
+        totalRow.createCell(13).setCellValue(totalDiff);
+        totalRow.getCell(13).setCellStyle(totalNumberStyle);
+        totalRow.createCell(14).setCellValue(totalSuma);
+        totalRow.getCell(14).setCellStyle(totalNumberStyle);
 
         for (int i = 0; i < headers.length; i++) {
             sheet.autoSizeColumn(i);

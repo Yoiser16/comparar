@@ -744,6 +744,23 @@
 
         <!-- OLIVE Tab Content -->
         <div id="contentOlive" class="tab-content hidden">
+            <!-- Configuración Porcentaje Olive -->
+            <div class="mb-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-xs font-bold text-green-900 dark:text-green-100">Configuración Olive Tutora:</span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs text-green-700 dark:text-green-300">Tutora:</span>
+                        <input type="number" id="porcentaje2OliveInput" th:value="${oliveP2 != null ? oliveP2 : 40}" min="0" max="100" step="0.1" 
+                               class="w-16 px-1.5 py-0.5 text-xs border border-green-300 dark:border-green-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500">
+                        <span class="text-xs text-green-700 dark:text-green-300">%</span>
+                    </div>
+                </div>
+                <button type="button" onclick="aplicarPorcentajes('olive')" 
+                        class="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded transition-colors shadow-sm">
+                    Aplicar Porcentajes
+                </button>
+            </div>
+
             <!-- Normal Navbar when NOT comparing -->
             <div th:unless="${compararActive && activeTab == 'olive'}" class="mb-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 p-3">
                 <div class="flex items-center gap-3 flex-wrap">
@@ -759,30 +776,30 @@
             <div class="mb-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700">
                 <form action="/historico" method="get" class="flex flex-col md:flex-row gap-4 items-end">
                     <input type="hidden" name="tab" value="olive">
+                    <input type="hidden" name="oliveP1" th:value="${oliveP1 != null ? oliveP1 : 60}">
+                    <input type="hidden" name="oliveP2" th:value="${oliveP2 != null ? oliveP2 : 40}">
                     <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
                         <div class="flex flex-col gap-1">
                             <label class="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500">Período A (Anterior)</label>
                             <select name="compPA" required class="w-full px-3 py-2 text-xs font-semibold rounded bg-slate-100 dark:bg-gray-700 border-none text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-green-500">
-                                <option value="" disabled th:selected="${compPA == null}">Selecciona período...</option>
+                                <option value="">Selecciona período anterior</option>
                                 <option th:each="periodo : ${periodosOlive}" th:value="${periodo}" th:text="${periodo}" th:selected="${periodo == compPA}"></option>
                             </select>
                         </div>
                         <div class="flex flex-col gap-1">
-                            <label class="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500">Período B (Siguiente)</label>
+                            <label class="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500">Período B (Reciente)</label>
                             <select name="compPB" required class="w-full px-3 py-2 text-xs font-semibold rounded bg-slate-100 dark:bg-gray-700 border-none text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-green-500">
-                                <option value="" disabled th:selected="${compPB == null}">Selecciona período...</option>
+                                <option value="">Selecciona período reciente</option>
                                 <option th:each="periodo : ${periodosOlive}" th:value="${periodo}" th:text="${periodo}" th:selected="${periodo == compPB}"></option>
                             </select>
                         </div>
                     </div>
                     <div class="flex gap-2 w-full md:w-auto">
-                        <button type="submit" class="w-full md:w-auto px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded text-xs transition-colors shadow-sm h-[38px] flex items-center justify-center gap-1.5">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        <button type="submit" class="w-full md:w-auto px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded text-xs transition-colors shadow-sm h-[38px]">
                             Comparar
                         </button>
-                        <a th:if="${compararActive && activeTab == 'olive'}" th:href="@{/historico/descargar/comparar-olive(pA=${compPA}, pB=${compPB})}" class="w-full md:w-auto px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs transition-colors shadow-sm h-[38px] flex items-center justify-center gap-1.5">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            Descargar Excel
+                        <a th:if="${compararActive && activeTab == 'olive'}" th:href="@{/historico/descargar/comparar-olive(pA=${compPA}, pB=${compPB}, oliveP1=${oliveP1}, oliveP2=${oliveP2})}" class="w-full md:w-auto px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs transition-colors shadow-sm h-[38px] flex items-center justify-center gap-1.5">
+                            Excel Comparativa
                         </a>
                         <a th:if="${compararActive && activeTab == 'olive'}" href="/historico?tab=olive" class="w-full md:w-auto px-6 py-2 bg-slate-600 hover:bg-slate-700 text-white font-bold rounded text-xs transition-colors shadow-sm h-[38px] flex items-center justify-center gap-1.5">
                             Limpiar
@@ -799,9 +816,12 @@
                             <tr>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">ID</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Nombre</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Ingresos</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Monto Dólares</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Nivel</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Recompensa</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Puntos Canjeables</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Pago Agencia</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Bonus Revenue</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Pago Tutora</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Tutora (Archivo)</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Periodo</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Fecha Registro</th>
@@ -809,11 +829,12 @@
                         </thead>
                         <tbody class="bg-white dark:bg-gray-800">
                             <tr th:if="${#lists.isEmpty(oliveRecords)}">
-                                <td colspan="8" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400 italic border border-slate-300 dark:border-gray-600">
+                                <td colspan="11" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400 italic border border-slate-300 dark:border-gray-600">
                                     No hay registros de OLIVE
                                 </td>
                             </tr>
-                            <tr th:each="registro : ${oliveRecords}" class="hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors data-row-olive" th:attr="data-period=${registro.periodo}">
+                            <tr th:each="registro : ${oliveRecords}" class="hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors data-row-olive" 
+                                th:attr="data-period=${registro.periodo},data-monedas=${registro.monedas},data-recompensa=${registro.recompensa},data-pagoagencia=${registro.pagoAgencia},data-bonusrevenue=${registro.bonusRevenue},data-pagotutora=${registro.pagoTutora},data-tutora=${registro.pagoTutora}">
                                 <td class="px-4 py-3 whitespace-nowrap text-sm font-mono font-bold text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-gray-600">
                                     <a th:href="@{/historico/usuario/{id}(id=${registro.id})}" class="text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:underline" th:text="${registro.id}">ID</a>
                                 </td>
@@ -823,9 +844,22 @@
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-orange-600 dark:text-orange-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${#numbers.formatDecimal(registro.monedas, 1, 2)}">0.00</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-left text-slate-900 dark:text-slate-100 font-semibold border border-slate-300 dark:border-gray-600" th:text="${registro.nivel}">-</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(registro.recompensa, 1, 2)}">$0.00</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(registro.pagoAgencia, 1, 2)}">$0.00</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(registro.bonusRevenue, 1, 2)}">$0.00</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 font-bold border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(registro.pagoTutora, 1, 2)}">$0.00</td>
                                 <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.nombreTutora}">-</td>
                                 <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.periodo}">-</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-xs text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${#temporals.format(registro.fechaRegistro, 'dd/MM/yyyy HH:mm')}">-</td>
+                            </tr>
+                            <tr id="totalRowOlive" th:if="${not #lists.isEmpty(oliveRecords)}" class="bg-gray-100 dark:bg-gray-700 font-bold">
+                                <td colspan="2" class="px-4 py-3 text-right text-sm uppercase border border-slate-300 dark:border-gray-600">TOTAL:</td>
+                                <td id="totalMonedasOlive" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-orange-600 dark:text-orange-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${#numbers.formatDecimal(#aggregates.sum(oliveRecords.![monedas]), 1, 2)}">0.00</td>
+                                <td class="border border-slate-300 dark:border-gray-600"></td>
+                                <td id="totalRecompensaOlive" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(#aggregates.sum(oliveRecords.![recompensa]), 1, 2)}">$0.00</td>
+                                <td id="totalPagoAgenciaOlive" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(#aggregates.sum(oliveRecords.![pagoAgencia]), 1, 2)}">$0.00</td>
+                                <td id="totalBonusRevenueOlive" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(#aggregates.sum(oliveRecords.![bonusRevenue]), 1, 2)}">$0.00</td>
+                                <td id="totalPagoTutoraOlive" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 font-bold border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(#aggregates.sum(oliveRecords.![pagoTutora]), 1, 2)}">$0.00</td>
+                                <td colspan="3" class="border border-slate-300 dark:border-gray-600"></td>
                             </tr>
                         </tbody>
                     </table>
@@ -859,13 +893,17 @@
                             <tr>
                                 <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">ID</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Nombre</th>
-                                <th th:text="${'Ingresos ' + compPA}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Ingresos A</th>
-                                <th th:text="${'Ingresos ' + compPB}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Ingresos B</th>
+                                <th th:text="${'Monto Dólares ' + compPA}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Monto Dólares A</th>
+                                <th th:text="${'Monto Dólares ' + compPB}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Monto Dólares B</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Nivel</th>
-                                <th th:text="${'Recompensa ' + compPA + ' ($)'}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Rec. A</th>
-                                <th th:text="${'Recompensa ' + compPB}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Rec. B</th>
-                                <th th:text="${'Total Pago ' + compPA + ' ($)'}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Total A</th>
-                                <th th:text="${'Total Pago ' + compPB + ' ($)'}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Total B</th>
+                                <th th:text="${'Puntos Canjeables ' + compPA}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Rec. A</th>
+                                <th th:text="${'Puntos Canjeables ' + compPB}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Rec. B</th>
+                                <th th:text="${'Pago Agencia ' + compPA}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Pago Ag. A</th>
+                                <th th:text="${'Pago Agencia ' + compPB}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Pago Ag. B</th>
+                                <th th:text="${'Bonus Revenue ' + compPA}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Bonus A</th>
+                                <th th:text="${'Bonus Revenue ' + compPB}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Bonus B</th>
+                                <th th:text="${'Pago Tutora ' + compPA}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Tutora A</th>
+                                <th th:text="${'Pago Tutora ' + compPB}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Tutora B</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Variación ($)</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Total Consolidado ($)</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Tutora (Archivo)</th>
@@ -873,12 +911,12 @@
                         </thead>
                         <tbody class="bg-white dark:bg-gray-800">
                             <tr th:if="${#lists.isEmpty(oliveComparacion)}">
-                                <td colspan="12" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400 italic border border-slate-300 dark:border-gray-600">
+                                <td colspan="16" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400 italic border border-slate-300 dark:border-gray-600">
                                     No hay registros para comparar en OLIVE
                                 </td>
                             </tr>
                             <tr th:each="fila : ${oliveComparacion}" class="data-row-compare-olive hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors border border-slate-300 dark:border-gray-600"
-                                th:attr="data-payout-a=${fila.totalA},data-payout-b=${fila.totalB},data-coins-a=${fila.totalMonedasA},data-coins-b=${fila.totalMonedasB},data-rec-a=${fila.recompensaA},data-rec-b=${fila.recompensaB}">
+                                th:attr="data-payout-a=${fila.pagoTutoraA},data-payout-b=${fila.pagoTutoraB},data-coins-a=${fila.totalMonedasA},data-coins-b=${fila.totalMonedasB},data-rec-a=${fila.recompensaA},data-rec-b=${fila.recompensaB}">
                                 <td class="px-4 py-3 whitespace-nowrap text-sm font-mono font-bold border border-slate-300 dark:border-gray-600">
                                     <a th:href="@{/historico/usuario/{id}(id=${fila.id})}" class="text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:underline" th:text="${fila.id}">ID</a>
                                 </td>
@@ -890,8 +928,16 @@
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-left text-slate-900 dark:text-slate-100 font-semibold border border-slate-300 dark:border-gray-600" th:text="${fila.nivel}">-</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(fila.recompensaA, 1, 2)}">$0.00</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(fila.recompensaB, 1, 2)}">$0.00</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(fila.totalA, 1, 2)}">$0.00</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(fila.totalB, 1, 2)}">$0.00</td>
+                                
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(fila.bonoAgenciaA, 1, 2)}">$0.00</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(fila.bonoAgenciaB, 1, 2)}">$0.00</td>
+                                
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(fila.bonusRevenueA, 1, 2)}">$0.00</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(fila.bonusRevenueB, 1, 2)}">$0.00</td>
+                                
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(fila.pagoTutoraA, 1, 2)}">$0.00</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(fila.pagoTutoraB, 1, 2)}">$0.00</td>
+                                
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono font-bold border border-slate-300 dark:border-gray-600"
                                     th:classappend="${fila.diffTotal > 0} ? 'text-emerald-600 dark:text-emerald-400' : (${fila.diffTotal < 0} ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500')"
                                     th:text="${(fila.diffTotal > 0 ? '+' : '') + #numbers.formatDecimal(fila.diffTotal, 1, 2)}">0.00</td>
@@ -906,8 +952,16 @@
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-left border border-slate-300 dark:border-gray-600"></td>
                                 <td id="compOliveTotalRecA" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-900 dark:text-white border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(#aggregates.sum(oliveComparacion.![recompensaA]), 1, 2)}">$0.00</td>
                                 <td id="compOliveTotalRecB" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-900 dark:text-white border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(#aggregates.sum(oliveComparacion.![recompensaB]), 1, 2)}">$0.00</td>
-                                <td id="compOliveTotalA" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-900 dark:text-white border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(compOliveTotalA, 1, 2)}">$0.00</td>
-                                <td id="compOliveTotalB" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-900 dark:text-white border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(compOliveTotalB, 1, 2)}">$0.00</td>
+                                
+                                <td id="compOliveTotalBonoA" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-900 dark:text-white border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(#aggregates.sum(oliveComparacion.![bonoAgenciaA]), 1, 2)}">$0.00</td>
+                                <td id="compOliveTotalBonoB" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-900 dark:text-white border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(#aggregates.sum(oliveComparacion.![bonoAgenciaB]), 1, 2)}">$0.00</td>
+                                
+                                <td id="compOliveTotalBRA" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-900 dark:text-white border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(#aggregates.sum(oliveComparacion.![bonusRevenueA]), 1, 2)}">$0.00</td>
+                                <td id="compOliveTotalBRB" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-900 dark:text-white border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(#aggregates.sum(oliveComparacion.![bonusRevenueB]), 1, 2)}">$0.00</td>
+                                
+                                <td id="compOliveTotalTutoraA" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(#aggregates.sum(oliveComparacion.![pagoTutoraA]), 1, 2)}">$0.00</td>
+                                <td id="compOliveTotalTutoraB" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(#aggregates.sum(oliveComparacion.![pagoTutoraB]), 1, 2)}">$0.00</td>
+                                
                                 <td id="compOliveTotalDiff" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono border border-slate-300 dark:border-gray-600"
                                     th:classappend="${compOliveTotalDiff > 0} ? 'text-emerald-600 dark:text-emerald-400' : (${compOliveTotalDiff < 0} ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white')"
                                     th:text="${(compOliveTotalDiff > 0 ? '+' : '') + #numbers.formatDecimal(compOliveTotalDiff, 1, 2)}">0.00</td>
@@ -917,6 +971,7 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
             </div>
         </div>
 
@@ -1074,6 +1129,22 @@
                 }
             });
 
+            let oliveTotalMonedas = 0;
+            let oliveTotalRecompensa = 0;
+            let oliveTotalPagoAgencia = 0;
+            let oliveTotalBonusRevenue = 0;
+            let oliveTotalPagoTutora = 0;
+
+            document.querySelectorAll('.data-row-olive').forEach(row => {
+                if (!row.classList.contains('hidden')) {
+                    oliveTotalMonedas += parseFloat(row.getAttribute('data-monedas') || '0');
+                    oliveTotalRecompensa += parseFloat(row.getAttribute('data-recompensa') || '0');
+                    oliveTotalPagoAgencia += parseFloat(row.getAttribute('data-pagoagencia') || '0');
+                    oliveTotalBonusRevenue += parseFloat(row.getAttribute('data-bonusrevenue') || '0');
+                    oliveTotalPagoTutora += parseFloat(row.getAttribute('data-pagotutora') || '0');
+                }
+            });
+
             const totalValueSalsa = document.getElementById('totalValueSalsa');
             if (totalValueSalsa) {
                 totalValueSalsa.textContent = `$${salsaTotal.toFixed(2)}`;
@@ -1083,6 +1154,21 @@
             if (totalValueLivejoy) {
                 totalValueLivejoy.textContent = `$${livejoyTotal.toFixed(2)}`;
             }
+
+            const totalMonedasOlive = document.getElementById('totalMonedasOlive');
+            if (totalMonedasOlive) totalMonedasOlive.textContent = oliveTotalMonedas.toFixed(2);
+
+            const totalRecompensaOlive = document.getElementById('totalRecompensaOlive');
+            if (totalRecompensaOlive) totalRecompensaOlive.textContent = `$${oliveTotalRecompensa.toFixed(2)}`;
+
+            const totalPagoAgenciaOlive = document.getElementById('totalPagoAgenciaOlive');
+            if (totalPagoAgenciaOlive) totalPagoAgenciaOlive.textContent = `$${oliveTotalPagoAgencia.toFixed(2)}`;
+
+            const totalBonusRevenueOlive = document.getElementById('totalBonusRevenueOlive');
+            if (totalBonusRevenueOlive) totalBonusRevenueOlive.textContent = `$${oliveTotalBonusRevenue.toFixed(2)}`;
+
+            const totalPagoTutoraOlive = document.getElementById('totalPagoTutoraOlive');
+            if (totalPagoTutoraOlive) totalPagoTutoraOlive.textContent = `$${oliveTotalPagoTutora.toFixed(2)}`;
         }
 
         function getActiveTabName() {
@@ -1514,6 +1600,9 @@
             } else if (platform === 'livejoy') {
                 bodyData.p1 = parseFloat(document.getElementById('porcentaje1Input').value);
                 bodyData.p2 = parseFloat(document.getElementById('porcentaje2Input').value);
+            } else if (platform === 'olive') {
+                bodyData.p1 = 60.0;
+                bodyData.p2 = parseFloat(document.getElementById('porcentaje2OliveInput').value);
             }
             
             try {
@@ -1533,6 +1622,9 @@
                     } else if (platform === 'livejoy') {
                         urlParams.set('p1', bodyData.p1);
                         urlParams.set('p2', bodyData.p2);
+                    } else if (platform === 'olive') {
+                        urlParams.set('oliveP1', 60.0);
+                        urlParams.set('oliveP2', bodyData.p2);
                     }
                     window.location.search = urlParams.toString();
                 } else {

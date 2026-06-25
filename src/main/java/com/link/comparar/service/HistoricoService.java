@@ -59,6 +59,7 @@ public class HistoricoService {
                         "Puntos Ganados por Usuaria", "Puntos Canjeables");
                 Double bonusTop100 = extraerNumeroMultiple(data, "Bonus Top 100", "Bonus");
                 Double loyaltyCredits = extraerNumero(data, "Loyalty Credits");
+                Double bonusRevenue = extraerNumero(data, "Bonus Revenue");
                 Integer semana = extraerEntero(data, "Semana");
                 String pais = obtenerValor(data, "País");
                 String whatsapp = obtenerValor(data, "WhatsApp");
@@ -77,6 +78,7 @@ public class HistoricoService {
                         sheet, periodoComparacion);
                 historico.setNombreTutora(nombreTutora);
                 historico.setNivel(nivel);
+                historico.setBonusRevenue(bonusRevenue);
 
                 historicoRepository.save(historico);
                 guardados++;

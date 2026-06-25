@@ -112,11 +112,13 @@ public class FileComparisonService {
                     if (value != null && !value.trim().isEmpty()) {
                         String displayName = getDisplayName(header);
                         if (displayName != null) {
-                            // Si es archivo OLIVE, solo mostrar los 3 campos solicitados
+                            // Si es archivo OLIVE, solo mostrar los campos específicos de OLIVE
                             if (isOliveFile) {
                                 if (displayName.equals("Puntos Canjeables") ||
                                         displayName.equals("Ingresos Streamer") ||
-                                        displayName.equals("Nivel")) {
+                                        displayName.equals("Nivel") ||
+                                        displayName.equals("Pago Agencia") ||
+                                        displayName.equals("Bonus Revenue")) {
                                     data.put(displayName, value.trim());
                                 }
                             } else {
@@ -802,6 +804,7 @@ public class FileComparisonService {
         displayNames.put("level", "Nivel");
         displayNames.put("streamers income", "Ingresos Streamer");
         displayNames.put("agency payment", "Pago Agencia");
+        displayNames.put("bonus revenue", "Bonus Revenue");
         displayNames.put("agency commission", "Comisión Agencia");
         displayNames.put("total revenue", "Ingresos Totales");
         displayNames.put("agency paym", "Pago Agencia"); // Versión abreviada por si está truncado

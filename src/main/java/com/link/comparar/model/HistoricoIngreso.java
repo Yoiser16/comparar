@@ -68,6 +68,9 @@ public class HistoricoIngreso {
     @Column(name = "nivel", length = 100)
     private String nivel;
 
+    @Column(name = "bonus_revenue")
+    private Double bonusRevenue;
+
     @Column(name = "fecha_registro", nullable = false)
     private LocalDateTime fechaRegistro;
 
@@ -264,6 +267,14 @@ public class HistoricoIngreso {
 
     public void setNivel(String nivel) {
         this.nivel = nivel;
+    }
+
+    public Double getBonusRevenue() {
+        return bonusRevenue;
+    }
+
+    public void setBonusRevenue(Double bonusRevenue) {
+        this.bonusRevenue = bonusRevenue;
     }
 
     /**

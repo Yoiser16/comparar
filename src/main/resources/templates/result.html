@@ -141,6 +141,32 @@
                                 </button>
                             </div>
                         </div>
+                        <!-- Botón OLIVE Resumen con campos de porcentajes (solo si hay registros OLIVE) -->
+                        <div th:if="${result.matchingRecords.?[
+    data != null and (
+        (data['Excel_Sheet'] != null and data['Excel_Sheet'].trim().toUpperCase() == 'OLIVE') or
+        (data['Sheet'] != null and data['Sheet'].trim().toUpperCase() == 'OLIVE') or
+        data['CSV_Puntos Canjeables'] != null or
+        data['CSV_Pago Agencia'] != null or
+        data['CSV_Bonus Revenue'] != null
+    )
+].size() > 0}"
+                             class="flex flex-col md:flex-row md:items-center gap-1.5 md:gap-2 p-2.5 md:p-1.5 bg-green-50 dark:bg-green-900/20 rounded-md border border-green-200 dark:border-green-800">
+                            <label class="text-xs md:text-[11px] font-semibold text-green-900 dark:text-green-100">Configuración OLIVE (Pago Tutora):</label>
+                            <div class="flex flex-wrap items-center gap-1.5 md:gap-1">
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs md:text-[11px] text-green-700 dark:text-green-300">Tutora:</span>
+                                    <input type="number" id="porcentaje2Olive" value="40" min="0" max="100" step="0.1" 
+                                           class="w-16 md:w-14 px-1.5 py-0.5 text-xs border border-green-300 dark:border-green-600 rounded focus:ring-2 focus:ring-green-500 dark:bg-slate-800 dark:text-white">
+                                    <span class="text-xs md:text-[11px] text-green-700 dark:text-green-300">%</span>
+                                </div>
+                                <button onclick="downloadOliveResumen()" 
+                                        class="flex items-center justify-center gap-1.5 px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white text-[11px] font-semibold rounded-md transition-colors">
+                                    <svg class="w-4 h-4 md:w-3.5 md:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    Descargar
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -242,6 +268,11 @@
         function downloadSalsaResumen() {
             const descuento = document.getElementById('porcentajeSalsa').value;
             window.location.href = `/download/salsa-resumen?descuento=${descuento}`;
+        }
+
+        function downloadOliveResumen() {
+            const p2 = document.getElementById('porcentaje2Olive').value;
+            window.location.href = `/download/olive-resumen?p1=60&p2=${p2}`;
         }
     </script>
 </body>
