@@ -100,7 +100,7 @@ public class HistoricoIngreso {
 
     // Constructor vacío requerido por JPA
     public HistoricoIngreso() {
-        this.fechaRegistro = LocalDateTime.now();
+        this.fechaRegistro = LocalDateTime.now(java.time.ZoneId.of("America/Bogota"));
     }
 
     // Constructor con parámetros
@@ -121,7 +121,7 @@ public class HistoricoIngreso {
         this.fuente = fuente;
         this.sheet = sheet;
         this.periodoComparacion = periodoComparacion;
-        this.fechaRegistro = LocalDateTime.now();
+        this.fechaRegistro = LocalDateTime.now(java.time.ZoneId.of("America/Bogota"));
     }
 
     // Getters y Setters

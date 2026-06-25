@@ -137,7 +137,7 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-mono font-bold text-emerald-600 dark:text-emerald-400" 
                                 th:text="${'$' + #numbers.formatDecimal(item.monto, 1, 2)}">$0.00</td>
                             <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-500 dark:text-slate-400" 
-                                th:text="${#temporals.format(item.fecha, 'dd/MM/yyyy HH:mm')}">15/06/2026</td>
+                                th:text="${#temporals.format(item.fecha, 'dd/MM/yyyy hh:mm a')}">15/06/2026</td>
                         </tr>
                     </tbody>
                 </table>

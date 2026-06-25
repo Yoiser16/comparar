@@ -451,7 +451,7 @@
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 font-bold border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(registro.tutora, 1, 2)}">$0.00</td>
                                 <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.nombreTutora}">-</td>
                                 <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.periodo}">-</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-xs text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${#temporals.format(registro.fechaRegistro, 'dd/MM/yyyy HH:mm')}">-</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-xs text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${#temporals.format(registro.fechaRegistro, 'dd/MM/yyyy hh:mm a')}">-</td>
                             </tr>
                             <tr id="totalRowSalsa" th:if="${not #lists.isEmpty(salsaRecords)}" class="bg-gray-100 dark:bg-gray-700 font-bold">
                                 <td colspan="3" class="px-4 py-3 text-right text-sm uppercase border border-slate-300 dark:border-gray-600">TOTAL:</td>
@@ -650,7 +650,7 @@
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 font-bold border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(registro.tutora, 1, 2)}">$0.00</td>
                                 <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.nombreTutora}">-</td>
                                 <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.periodo}">-</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-xs text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${#temporals.format(registro.fechaRegistro, 'dd/MM/yyyy HH:mm')}">-</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-xs text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${#temporals.format(registro.fechaRegistro, 'dd/MM/yyyy hh:mm a')}">-</td>
                             </tr>
                             <tr id="totalRowLivejoy" th:if="${not #lists.isEmpty(livejoyRecords)}" class="bg-gray-100 dark:bg-gray-700 font-bold">
                                 <td colspan="4" class="px-4 py-3 text-right text-sm uppercase border border-slate-300 dark:border-gray-600">TOTAL:</td>
@@ -849,7 +849,7 @@
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 font-bold border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(registro.pagoTutora, 1, 2)}">$0.00</td>
                                 <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.nombreTutora}">-</td>
                                 <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.periodo}">-</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-xs text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${#temporals.format(registro.fechaRegistro, 'dd/MM/yyyy HH:mm')}">-</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-xs text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${#temporals.format(registro.fechaRegistro, 'dd/MM/yyyy hh:mm a')}">-</td>
                             </tr>
                             <tr id="totalRowOlive" th:if="${not #lists.isEmpty(oliveRecords)}" class="bg-gray-100 dark:bg-gray-700 font-bold">
                                 <td colspan="2" class="px-4 py-3 text-right text-sm uppercase border border-slate-300 dark:border-gray-600">TOTAL:</td>

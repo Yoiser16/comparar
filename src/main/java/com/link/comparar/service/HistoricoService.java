@@ -29,7 +29,7 @@ public class HistoricoService {
     @Transactional
     public void guardarRegistrosConIngresos(List<FileRecord> matchingRecords, String periodoComparacion) {
         int guardados = 0;
-        LocalDateTime ahora = LocalDateTime.now();
+        LocalDateTime ahora = LocalDateTime.now(java.time.ZoneId.of("America/Bogota"));
 
         // Si ya existen registros con este periodo, eliminarlos primero (reemplazo
         // completo)
