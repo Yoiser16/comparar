@@ -799,11 +799,9 @@
                             <tr>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">ID</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Nombre</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Monedas</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Total Monedas</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Ingresos</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Nivel</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Recompensa</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">País</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Tutora (Archivo)</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Periodo</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Fecha Registro</th>
@@ -811,7 +809,7 @@
                         </thead>
                         <tbody class="bg-white dark:bg-gray-800">
                             <tr th:if="${#lists.isEmpty(oliveRecords)}">
-                                <td colspan="10" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400 italic border border-slate-300 dark:border-gray-600">
+                                <td colspan="8" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400 italic border border-slate-300 dark:border-gray-600">
                                     No hay registros de OLIVE
                                 </td>
                             </tr>
@@ -823,10 +821,8 @@
                                     <a th:href="@{/historico/usuario/{id}(id=${registro.id})}" class="text-slate-900 dark:text-slate-100 hover:text-orange-600 dark:hover:text-orange-400 hover:underline" th:text="${registro.nombre}">Nombre</a>
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-orange-600 dark:text-orange-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${#numbers.formatDecimal(registro.monedas, 1, 2)}">0.00</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-green-700 dark:text-green-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${#numbers.formatDecimal(registro.totalMonedas, 1, 2)}">0.00</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-left text-slate-900 dark:text-slate-100 font-semibold border border-slate-300 dark:border-gray-600" th:text="${registro.nivel}">-</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(registro.recompensa, 1, 2)}">$0.00</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.pais}">-</td>
                                 <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.nombreTutora}">-</td>
                                 <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${registro.periodo}">-</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-xs text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-gray-600" th:text="${#temporals.format(registro.fechaRegistro, 'dd/MM/yyyy HH:mm')}">-</td>
@@ -863,8 +859,8 @@
                             <tr>
                                 <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">ID</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Nombre</th>
-                                <th th:text="${'Total Monedas ' + compPA}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Monedas A</th>
-                                <th th:text="${'Total Monedas ' + compPB}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Monedas B</th>
+                                <th th:text="${'Ingresos ' + compPA}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Ingresos A</th>
+                                <th th:text="${'Ingresos ' + compPB}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Ingresos B</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Nivel</th>
                                 <th th:text="${'Recompensa ' + compPA + ' ($)'}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Rec. A</th>
                                 <th th:text="${'Recompensa ' + compPB}" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Rec. B</th>

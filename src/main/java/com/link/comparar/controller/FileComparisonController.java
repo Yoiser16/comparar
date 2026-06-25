@@ -1071,7 +1071,7 @@ public class FileComparisonController {
         }
 
         Sheet oliveSheet = workbook.createSheet("OLIVE");
-        String[] oliveHeaders = { "ID", "Nombre", "Monedas", "Total Monedas", "Nivel", "Recompensa", "País", "Tutora (Archivo)" };
+        String[] oliveHeaders = { "ID", "Nombre", "Ingresos", "Nivel", "Recompensa", "Tutora (Archivo)" };
         Row oliveHeaderRow = oliveSheet.createRow(0);
         for (int i = 0; i < oliveHeaders.length; i++) {
             org.apache.poi.ss.usermodel.Cell cell = oliveHeaderRow.createCell(i);
@@ -1135,7 +1135,6 @@ public class FileComparisonController {
                 Row row = oliveSheet.createRow(oliveRowNum++);
 
                 double monedas = roundTwoDecimals(registro.getMonedas() != null ? registro.getMonedas() : 0.0);
-                double totalMonedas = roundTwoDecimals(registro.getTotalMonedas() != null ? registro.getTotalMonedas() : 0.0);
                 String nivel = registro.getNivel() != null ? registro.getNivel() : "-";
                 double recompensa = roundTwoDecimals(registro.getRecompensaEvento() != null ? registro.getRecompensaEvento() : 0.0);
 
@@ -1143,16 +1142,12 @@ public class FileComparisonController {
                 row.createCell(1).setCellValue(registro.getNombreCompleto() != null ? registro.getNombreCompleto() : "");
                 row.createCell(2).setCellValue(monedas);
                 row.getCell(2).setCellStyle(numberStyle);
-                row.createCell(3).setCellValue(totalMonedas);
-                row.getCell(3).setCellStyle(numberStyle);
-                row.createCell(4).setCellValue(nivel);
-                row.createCell(5).setCellValue(recompensa);
-                row.getCell(5).setCellStyle(numberStyle);
-                row.createCell(6).setCellValue(registro.getPais() != null ? registro.getPais() : "");
-                row.createCell(7).setCellValue(registro.getNombreTutora() != null ? registro.getNombreTutora() : "-");
+                row.createCell(3).setCellValue(nivel);
+                row.createCell(4).setCellValue(recompensa);
+                row.getCell(4).setCellStyle(numberStyle);
+                row.createCell(5).setCellValue(registro.getNombreTutora() != null ? registro.getNombreTutora() : "-");
 
                 oliveTotalMonedas += monedas;
-                oliveTotalMonedasGeneral += totalMonedas;
                 oliveTotalRecompensa += recompensa;
             }
         }
@@ -1178,12 +1173,10 @@ public class FileComparisonController {
         oliveTotalRow.getCell(1).setCellStyle(totalLabelStyle);
         oliveTotalRow.createCell(2).setCellValue(roundTwoDecimals(oliveTotalMonedas));
         oliveTotalRow.getCell(2).setCellStyle(totalNumberStyle);
-        oliveTotalRow.createCell(3).setCellValue(roundTwoDecimals(oliveTotalMonedasGeneral));
-        oliveTotalRow.getCell(3).setCellStyle(totalNumberStyle);
-        oliveTotalRow.createCell(4).setCellValue("");
-        oliveTotalRow.getCell(4).setCellStyle(totalLabelStyle);
-        oliveTotalRow.createCell(5).setCellValue(roundTwoDecimals(oliveTotalRecompensa));
-        oliveTotalRow.getCell(5).setCellStyle(totalNumberStyle);
+        oliveTotalRow.createCell(3).setCellValue("");
+        oliveTotalRow.getCell(3).setCellStyle(totalLabelStyle);
+        oliveTotalRow.createCell(4).setCellValue(roundTwoDecimals(oliveTotalRecompensa));
+        oliveTotalRow.getCell(4).setCellStyle(totalNumberStyle);
 
         for (int i = 0; i < salsaHeaders.length; i++) {
             salsaSheet.autoSizeColumn(i);
@@ -1975,7 +1968,7 @@ public class FileComparisonController {
                 if (r.getNivel() != null && !r.getNivel().isEmpty() && !"-".equals(r.getNivel())) {
                     oc.setNivel(r.getNivel());
                 }
-                double tm = r.getTotalMonedas() != null ? r.getTotalMonedas() : (r.getMonedas() != null ? r.getMonedas() : 0.0);
+                double tm = r.getMonedas() != null ? r.getMonedas() : 0.0;
                 double rec = r.getRecompensaEvento() != null ? r.getRecompensaEvento() : 0.0;
                 double val = rec;
                 oc.setTotalMonedasA(oc.getTotalMonedasA() + tm);
@@ -1992,7 +1985,7 @@ public class FileComparisonController {
                 if (r.getNivel() != null && !r.getNivel().isEmpty() && !"-".equals(r.getNivel())) {
                     oc.setNivel(r.getNivel());
                 }
-                double tm = r.getTotalMonedas() != null ? r.getTotalMonedas() : (r.getMonedas() != null ? r.getMonedas() : 0.0);
+                double tm = r.getMonedas() != null ? r.getMonedas() : 0.0;
                 double rec = r.getRecompensaEvento() != null ? r.getRecompensaEvento() : 0.0;
                 double val = rec;
                 oc.setTotalMonedasB(oc.getTotalMonedasB() + tm);
@@ -2300,7 +2293,7 @@ public class FileComparisonController {
 
         String[] headers = { 
             "ID", "Nombre", 
-            "Total Monedas " + pA, "Total Monedas " + pB, 
+            "Ingresos " + pA, "Ingresos " + pB, 
             "Nivel", 
             "Recompensa " + pA + " ($)", "Recompensa " + pB + " ($)", 
             "Total Pago " + pA + " ($)", "Total Pago " + pB + " ($)", 
