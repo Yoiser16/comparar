@@ -32,10 +32,16 @@ public class FileComparisonService {
      * y columna de ID.
      */
     public Map<String, FileRecord> extractRecordsFromCsv(MultipartFile file) throws IOException {
-        Map<String, FileRecord> records = new HashMap<>();
-
         // Leemos el contenido una sola vez para poder inspeccionarlo y luego parsearlo
         byte[] content = file.getBytes();
+
+        String textContent = new String(content, StandardCharsets.UTF_8);
+        if ((textContent.contains("\t") || textContent.contains("  ")) && 
+            (textContent.toLowerCase().contains("id:") || textContent.toLowerCase().contains("id ") || textContent.toLowerCase().contains("streamer") || textContent.toLowerCase().contains("monedas"))) {
+            return parsePastedTable(textContent);
+        }
+
+        Map<String, FileRecord> records = new HashMap<>();
 
         char delimiter = detectDelimiter(content);
         logger.info("CSV delimitador detectado: '{}'", delimiter == '\t' ? "TAB" : String.valueOf(delimiter));
@@ -845,5 +851,194 @@ public class FileComparisonService {
 
         // Para campos desconocidos pero que no están en la lista negra, capitalizar
         return fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
+    }
+
+
+
+    /**
+     * Parsea el texto copiado y pegado directamente de la tabla de SALSA
+     */
+    public Map<String, FileRecord> parsePastedTable(String content) {
+        Map<String, FileRecord> records = new HashMap<>();
+        String[] lines = content.split("\\r?\\n");
+        
+        logger.info("Detectado formato de tabla pegada. Procesando {} líneas...", lines.length);
+        
+        // Loguear las primeras 60 líneas para depurar en modo debug si es necesario
+        for (int i = 0; i < Math.min(60, lines.length); i++) {
+            logger.debug("Línea de depuración {}: '{}'", i, lines[i]);
+        }
+
+        java.util.regex.Pattern idPattern = java.util.regex.Pattern.compile("(?:id:?\\s*)?(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE);
+        String lastLineWithoutTabs = "";
+
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i].trim();
+            if (line.isEmpty()) continue;
+
+            // Si la línea no contiene delimitadores de columna, podría ser el nombre que se partió por un salto de línea
+            if (!line.contains("\t") && !line.contains("  ") && line.split("\\s+").length <= 5 && !line.toLowerCase().contains("id")) {
+                lastLineWithoutTabs = line;
+                continue;
+            }
+
+            // Si la línea contiene los encabezados, la saltamos
+            if (line.toLowerCase().contains("nombre streamer") || line.toLowerCase().contains("total monedas")) {
+                continue;
+            }
+
+            // Detectar si la línea contiene un ID
+            if (line.toLowerCase().contains("id")) {
+                java.util.regex.Matcher matcher = idPattern.matcher(line);
+                String foundId = "";
+                int lastMatchStart = -1;
+                
+                while (matcher.find()) {
+                    String match = matcher.group(1);
+                    if (match.length() >= 5) {
+                        foundId = match;
+                        lastMatchStart = matcher.start();
+                    }
+                }
+                
+                if (foundId.isEmpty()) continue;
+                String cleanId = cleanId(foundId);
+                if (cleanId.isEmpty()) continue;
+
+                // Detectar si esta línea es HORIZONTAL (contiene el ID y las columnas en la misma línea)
+                boolean isHorizontal = line.contains("\t") || line.contains("  ");
+                
+                if (isHorizontal) {
+                    // --- PARSEO HORIZONTAL ---
+                    String[] parts = line.split("\\t");
+                    if (parts.length < 8) {
+                        parts = line.split("\\s{2,}");
+                    }
+
+                    if (parts.length >= 8) {
+                        String firstCol = parts[0].trim();
+                        String id = cleanId;
+                        String nombre = "";
+                        
+                        java.util.regex.Matcher nameMatcher = idPattern.matcher(firstCol);
+                        if (nameMatcher.find()) {
+                            nombre = firstCol.substring(0, nameMatcher.start()).replaceAll("(?i)id:?\\s*$", "").trim();
+                        }
+                        if (nombre.isEmpty() && !lastLineWithoutTabs.isEmpty()) {
+                            nombre = lastLineWithoutTabs;
+                        }
+
+                        Map<String, String> data = new LinkedHashMap<>();
+                        data.put("Nombre Completo", nombre.isEmpty() ? "Streamer " + cleanId : nombre);
+                        
+                        if (parts.length > 8) {
+                            String totalMonedas = parts[8].trim().replace(",", "").replace(".", "");
+                            data.put("Total de Monedas", totalMonedas);
+                        }
+                        
+                        if (parts.length > 11) {
+                            String bonoTop = parts[11].trim().replace("$", "").replace(",", "").trim();
+                            data.put("Bonus Top 100", bonoTop);
+                        } else {
+                            data.put("Bonus Top 100", "0");
+                        }
+                        
+                        if (parts.length > 12) {
+                            String pagoAgencia = parts[12].trim().replace("$", "").replace(",", "").trim();
+                            data.put("Bono de Agencia $", pagoAgencia);
+                        } else {
+                            data.put("Bono de Agencia $", "0");
+                        }
+
+                        FileRecord fileRecord = new FileRecord(cleanId, data, "CSV");
+                        records.put(cleanId, fileRecord);
+                        logger.info("Registro horizontal extraído - ID: {}, Nombre: {}, Monedas: {}, Bono: {}, Pago: {}", 
+                            cleanId, nombre, data.get("Total de Monedas"), data.get("Bonus Top 100"), data.get("Bono de Agencia $"));
+                    }
+                } else {
+                    // --- PARSEO VERTICAL O HÍBRIDO ---
+                    String nombre = "";
+                    if (lastMatchStart > 0) {
+                        // El nombre está en la misma línea antes del ID
+                        nombre = line.substring(0, lastMatchStart).replaceAll("(?i)id:?\\s*$", "").trim();
+                    }
+                    
+                    if (nombre.isEmpty() && i - 1 >= 0) {
+                        // El nombre está en la línea anterior
+                        String prev = lines[i - 1].trim();
+                        if (prev.length() == 1 && i - 2 >= 0) {
+                            nombre = lines[i - 2].trim();
+                        } else if (prev.length() > 1 && !prev.toLowerCase().contains("cerrar") && !prev.toLowerCase().contains("reportes")) {
+                            nombre = prev;
+                        }
+                    }
+                    
+                    Map<String, String> data = new LinkedHashMap<>();
+                    data.put("Nombre Completo", nombre.isEmpty() ? "Streamer " + cleanId : nombre);
+                    
+                    // Verificar si los valores numéricos están tabulados en la siguiente línea o en vertical
+                    if (i + 1 < lines.length) {
+                        String nextLine = lines[i + 1].trim();
+                        String[] parts = nextLine.split("\\t");
+                        if (parts.length < 8) {
+                            parts = nextLine.split("\\s{2,}");
+                        }
+                        
+                        if (parts.length >= 8) {
+                            // Los valores están tabulados en la siguiente línea
+                            String totalMonedas = parts[7].trim().replace(",", "").replace(".", "");
+                            data.put("Total de Monedas", totalMonedas);
+                            
+                            if (parts.length > 10) {
+                                String bonoTop = parts[10].trim().replace("$", "").replace(",", "").trim();
+                                data.put("Bonus Top 100", bonoTop);
+                            } else {
+                                data.put("Bonus Top 100", "0");
+                            }
+                            
+                            if (parts.length > 11) {
+                                String pagoAgencia = parts[11].trim().replace("$", "").replace(",", "").trim();
+                                data.put("Bono de Agencia $", pagoAgencia);
+                            } else {
+                                data.put("Bono de Agencia $", "0");
+                            }
+                            
+                            i += 1; // avanzar 1 línea ya que los valores estaban en la siguiente
+                        } else {
+                            // Formato 100% vertical (una línea por celda)
+                            if (i + 8 < lines.length) {
+                                String totalMonedas = lines[i + 8].trim().replace(",", "").replace(".", "");
+                                data.put("Total de Monedas", totalMonedas);
+                            }
+                            
+                            if (i + 11 < lines.length) {
+                                String bonoTop = lines[i + 11].trim().replace("$", "").replace(",", "").trim();
+                                data.put("Bonus Top 100", bonoTop);
+                            } else {
+                                data.put("Bonus Top 100", "0");
+                            }
+                            
+                            if (i + 12 < lines.length) {
+                                String pagoAgencia = lines[i + 12].trim().replace("$", "").replace(",", "").trim();
+                                data.put("Bono de Agencia $", pagoAgencia);
+                            } else {
+                                data.put("Bono de Agencia $", "0");
+                            }
+                            
+                            i += 12; // saltar los campos procesados de esta fila
+                        }
+                    }
+                    
+                    FileRecord fileRecord = new FileRecord(cleanId, data, "CSV");
+                    records.put(cleanId, fileRecord);
+                    logger.info("Registro extraído - ID: {}, Nombre: {}, Monedas: {}, Bono: {}, Pago: {}", 
+                        cleanId, nombre, data.get("Total de Monedas"), data.get("Bonus Top 100"), data.get("Bono de Agencia $"));
+                }
+            }
+            lastLineWithoutTabs = "";
+        }
+        
+        logger.info("Total registros extraídos de la tabla pegada: {}", records.size());
+        return records;
     }
 }

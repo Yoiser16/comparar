@@ -69,12 +69,29 @@
                         </div>
                         
                         <div class="md:col-span-5 group">
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Fuente Primaria (CSV) - Múltiples Archivos</label>
-                            <input type="file" name="csvFiles" id="csvFile" accept=".csv" multiple class="hidden" onchange="updateUI(this, 'csvBox', 'csvIcon')">
-                            <label for="csvFile" id="csvBox" class="flex flex-col items-center justify-center h-28 md:h-32 border-2 border-dashed border-slate-600 rounded-xl cursor-pointer hover:border-brand-500 hover:bg-slate-700/50 transition-all">
-                                <svg id="csvIcon" class="w-8 h-8 text-slate-500 mb-2 group-hover:text-brand-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                <span class="text-sm font-mono text-slate-300 file-name">Seleccionar .CSV</span>
-                            </label>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Fuente Primaria (CSV / Pegar)</span>
+                                <div class="flex gap-1 bg-slate-700/50 p-0.5 rounded-lg border border-slate-600">
+                                    <button type="button" id="btnModeFile" onclick="setMode('file')" class="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-brand-500 text-white transition-all">Subir Archivo</button>
+                                    <button type="button" id="btnModePaste" onclick="setMode('paste')" class="px-2 py-0.5 text-[10px] font-bold uppercase rounded text-slate-400 hover:text-white transition-all">Pegar Reporte</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Modo Archivo (Por defecto) -->
+                            <div id="containerFileMode" class="block">
+                                <input type="file" name="csvFiles" id="csvFile" accept=".csv,.txt" multiple class="hidden" onchange="updateUI(this, 'csvBox', 'csvIcon')">
+                                <label for="csvFile" id="csvBox" class="flex flex-col items-center justify-center h-28 md:h-32 border-2 border-dashed border-slate-600 rounded-xl cursor-pointer hover:border-brand-500 hover:bg-slate-700/50 transition-all">
+                                    <svg id="csvIcon" class="w-8 h-8 text-slate-500 mb-2 group-hover:text-brand-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    <span class="text-sm font-mono text-slate-300 file-name">Seleccionar .CSV o .TXT</span>
+                                </label>
+                            </div>
+                            
+                            <!-- Modo Pegar -->
+                            <div id="containerPasteMode" class="hidden">
+                                <textarea name="salsaPastedText" id="salsaPastedText" rows="4" 
+                                    placeholder="Selecciona toda la pantalla de SALSA (Ctrl+A), cópiala (Ctrl+C) y pégala aquí..."
+                                    class="w-full h-28 md:h-32 px-3 py-2 bg-slate-700 border-2 border-slate-600 text-white text-xs font-mono rounded-xl focus:border-brand-500 focus:outline-none placeholder-slate-500 resize-none"></textarea>
+                            </div>
                         </div>
 
                         <div class="md:col-span-1 flex justify-center my-1 md:my-0">
@@ -157,6 +174,43 @@
     </footer>
 
     <script>
+        function setMode(mode) {
+            const btnFile = document.getElementById('btnModeFile');
+            const btnPaste = document.getElementById('btnModePaste');
+            const containerFile = document.getElementById('containerFileMode');
+            const containerPaste = document.getElementById('containerPasteMode');
+            const csvInput = document.getElementById('csvFile');
+            const pasteInput = document.getElementById('salsaPastedText');
+
+            if (mode === 'file') {
+                btnFile.classList.add('bg-brand-500', 'text-white');
+                btnFile.classList.remove('text-slate-400');
+                btnPaste.classList.remove('bg-brand-500', 'text-white');
+                btnPaste.classList.add('text-slate-400');
+                
+                containerFile.classList.remove('hidden');
+                containerFile.classList.add('block');
+                containerPaste.classList.remove('block');
+                containerPaste.classList.add('hidden');
+                
+                pasteInput.value = '';
+            } else {
+                btnPaste.classList.add('bg-brand-500', 'text-white');
+                btnPaste.classList.remove('text-slate-400');
+                btnFile.classList.remove('bg-brand-500', 'text-white');
+                btnFile.classList.add('text-slate-400');
+                
+                containerPaste.classList.remove('hidden');
+                containerPaste.classList.add('block');
+                containerFile.classList.remove('block');
+                containerFile.classList.add('hidden');
+                
+                csvInput.value = '';
+                const nameSpan = containerFile.querySelector('.file-name');
+                if (nameSpan) nameSpan.innerText = 'Seleccionar .CSV o .TXT';
+            }
+        }
+
         function updateUI(input, boxId, iconId) {
             const box = document.getElementById(boxId);
             const icon = document.getElementById(iconId);

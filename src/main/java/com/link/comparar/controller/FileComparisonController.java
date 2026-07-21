@@ -97,17 +97,24 @@ public class FileComparisonController {
 
     @PostMapping("/compare")
     public String compareFiles(
-            @RequestParam("csvFiles") MultipartFile[] csvFiles,
+            @RequestParam(value = "csvFiles", required = false) MultipartFile[] csvFiles,
             @RequestParam("excelFiles") MultipartFile[] excelFiles,
+            @RequestParam(value = "salsaPastedText", required = false) String salsaPastedText,
             @RequestParam(value = "periodoComparacion", required = false) String periodoComparacion,
             Model model,
             RedirectAttributes redirectAttributes,
             jakarta.servlet.http.HttpSession session) {
 
-        // Validar que se hayan seleccionado archivos
-        if (csvFiles == null || csvFiles.length == 0 || excelFiles == null || excelFiles.length == 0) {
+        // Procesar texto pegado de SALSA si se proporcionó
+        if (salsaPastedText != null && !salsaPastedText.trim().isEmpty()) {
+            PastedMultipartFile pastedFile = new PastedMultipartFile("salsa_pegado.txt", salsaPastedText.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            csvFiles = new MultipartFile[] { pastedFile };
+        }
+
+        // Validar que se hayan seleccionado archivos o proporcionado texto pegado
+        if ((csvFiles == null || csvFiles.length == 0) && (excelFiles == null || excelFiles.length == 0)) {
             redirectAttributes.addFlashAttribute("error",
-                    "Por favor, selecciona al menos un archivo CSV y un archivo Excel.");
+                    "Por favor, selecciona archivos o pega el reporte de SALSA, y selecciona un archivo Excel.");
             return "redirect:/";
         }
 
@@ -120,10 +127,12 @@ public class FileComparisonController {
 
         // Validar que los archivos no estén vacíos
         boolean allCsvEmpty = true;
-        for (MultipartFile csv : csvFiles) {
-            if (!csv.isEmpty()) {
-                allCsvEmpty = false;
-                break;
+        if (csvFiles != null) {
+            for (MultipartFile csv : csvFiles) {
+                if (!csv.isEmpty()) {
+                    allCsvEmpty = false;
+                    break;
+                }
             }
         }
 
@@ -136,19 +145,22 @@ public class FileComparisonController {
         }
 
         if (allCsvEmpty || allExcelEmpty) {
-            redirectAttributes.addFlashAttribute("error", "Los archivos seleccionados están vacíos.");
+            redirectAttributes.addFlashAttribute("error", "Los archivos o el texto pegado seleccionados están vacíos.");
             return "redirect:/";
         }
 
         // Validar extensiones de archivos
-        for (MultipartFile csvFile : csvFiles) {
-            if (csvFile.isEmpty())
-                continue;
-            String csvFileName = csvFile.getOriginalFilename();
-            if (csvFileName == null || !csvFileName.toLowerCase().endsWith(".csv")) {
-                redirectAttributes.addFlashAttribute("error",
-                        "Todos los archivos CSV deben tener extensión .csv: " + csvFileName);
-                return "redirect:/";
+        if (csvFiles != null) {
+            for (MultipartFile csvFile : csvFiles) {
+                if (csvFile.isEmpty())
+                    continue;
+                String csvFileName = csvFile.getOriginalFilename();
+                if (csvFileName == null || 
+                    (!csvFileName.toLowerCase().endsWith(".csv") && !csvFileName.toLowerCase().endsWith(".txt"))) {
+                    redirectAttributes.addFlashAttribute("error",
+                            "Todos los archivos de datos deben tener extensión .csv o .txt (pasted text): " + csvFileName);
+                    return "redirect:/";
+                }
             }
         }
 
