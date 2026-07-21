@@ -1261,7 +1261,10 @@
                 });
                 if (response.ok) {
                     closeDeleteModal();
-                    window.location.reload();
+                    const activeTab = getActiveTabName();
+                    const urlParams = new URLSearchParams(window.location.search);
+                    urlParams.set('tab', activeTab);
+                    window.location.search = urlParams.toString();
                 } else {
                     alert('Error al eliminar el período');
                 }
