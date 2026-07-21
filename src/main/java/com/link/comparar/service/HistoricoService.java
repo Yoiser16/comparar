@@ -76,6 +76,21 @@ public class HistoricoService {
                         id, nombreCompleto, monedas, totalMonedas, bonoAgencia,
                         recompensaEvento, bonusTop100, loyaltyCredits, semana, pais, whatsapp, fuente,
                         sheet, periodoComparacion);
+                
+                // Inicializar porcentajes por defecto según la plataforma
+                if (sheet != null) {
+                    String normSheet = sheet.trim().toUpperCase();
+                    if ("SALSA".equals(normSheet)) {
+                        historico.setPorcentajeDescuento(60.0);
+                    } else if ("LIVEJOY".equals(normSheet)) {
+                        historico.setPorcentaje1(12.0);
+                        historico.setPorcentaje2(40.0);
+                    } else if ("OLIVE".equals(normSheet)) {
+                        historico.setPorcentaje1(60.0);
+                        historico.setPorcentaje2(40.0);
+                    }
+                }
+                
                 historico.setNombreTutora(nombreTutora);
                 historico.setNivel(nivel);
                 historico.setBonusRevenue(bonusRevenue);
@@ -269,5 +284,51 @@ public class HistoricoService {
     private String normalizeSheet(String sheet) {
         if (sheet == null) return "";
         return sheet.trim().toUpperCase();
+    }
+
+    @jakarta.annotation.PostConstruct
+    @Transactional
+    public void migrarPorcentajesNulos() {
+        logger.info("Verificando registros del histórico con porcentajes nulos...");
+        List<HistoricoIngreso> registros = historicoRepository.findAll();
+        int actualizados = 0;
+        for (HistoricoIngreso reg : registros) {
+            String sheet = reg.getSheet();
+            if (sheet != null) {
+                sheet = sheet.trim().toUpperCase();
+                boolean modificado = false;
+                if ("SALSA".equals(sheet) && reg.getPorcentajeDescuento() == null) {
+                    reg.setPorcentajeDescuento(60.0);
+                    modificado = true;
+                } else if ("LIVEJOY".equals(sheet)) {
+                    if (reg.getPorcentaje1() == null) {
+                        reg.setPorcentaje1(12.0);
+                        modificado = true;
+                    }
+                    if (reg.getPorcentaje2() == null) {
+                        reg.setPorcentaje2(40.0);
+                        modificado = true;
+                    }
+                } else if ("OLIVE".equals(sheet)) {
+                    if (reg.getPorcentaje1() == null) {
+                        reg.setPorcentaje1(60.0);
+                        modificado = true;
+                    }
+                    if (reg.getPorcentaje2() == null) {
+                        reg.setPorcentaje2(40.0);
+                        modificado = true;
+                    }
+                }
+                if (modificado) {
+                    historicoRepository.save(reg);
+                    actualizados++;
+                }
+            }
+        }
+        if (actualizados > 0) {
+            logger.info("Migración completada. Se actualizaron {} registros con porcentajes por defecto.", actualizados);
+        } else {
+            logger.info("No se encontraron registros con porcentajes nulos.");
+        }
     }
 }
