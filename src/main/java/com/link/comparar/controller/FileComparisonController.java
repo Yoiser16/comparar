@@ -678,8 +678,8 @@ public class FileComparisonController {
             String totalCoins = getFieldValue(record, "CSV_Total de Monedas", "CSV_Total Monedas", "CSV_Total Coins");
             row.createCell(2).setCellValue(totalCoins);
 
-            // Tutora <- Cálculo: (Bono de Agencia - descuento%) + (Bonus Top 100 - descuento%)
-            double tutora = (bonoAgenciaValue * porcentajeRetener) + (bonusTop100Value * porcentajeRetener);
+            // Tutora <- Cálculo: (Bono de Agencia - descuento%) (ya incluye el bono top)
+            double tutora = bonoAgenciaValue * porcentajeRetener;
 
             row.createCell(3).setCellValue(String.format("%.2f", tutora));
             totalTutora += tutora;
@@ -1005,7 +1005,7 @@ public class FileComparisonController {
                 double ba = reg.getBonoAgencia() != null ? reg.getBonoAgencia() : 0.0;
                 double bt = reg.getBonusTop100() != null ? reg.getBonusTop100() : 0.0;
                 double appliedDescuento = (reg.getPorcentajeDescuento() != null) ? reg.getPorcentajeDescuento() : 60.0;
-                valor = (ba * (1.0 - appliedDescuento/100.0)) + (bt * (1.0 - appliedDescuento/100.0));
+                valor = ba * (1.0 - appliedDescuento/100.0);
                 coins = reg.getTotalMonedas() != null ? reg.getTotalMonedas() : 0.0;
                 totalSalsa += valor;
             } else if ("LIVEJOY".equals(sheet)) {
@@ -1265,7 +1265,7 @@ public class FileComparisonController {
                 double bonoAgencia = registro.getBonoAgencia() != null ? registro.getBonoAgencia() : 0.0;
                 double bonusTop100 = registro.getBonusTop100() != null ? registro.getBonusTop100() : 0.0;
                 double appliedDescuento = (registro.getPorcentajeDescuento() != null) ? registro.getPorcentajeDescuento() : descuento;
-                double tutora = roundTwoDecimals((bonoAgencia * (1.0 - appliedDescuento/100.0)) + (bonusTop100 * (1.0 - appliedDescuento/100.0)));
+                double tutora = roundTwoDecimals(bonoAgencia * (1.0 - appliedDescuento/100.0));
                 double totalCoins = roundTwoDecimals(registro.getTotalMonedas() != null ? registro.getTotalMonedas() : 0.0);
 
                 row.createCell(0).setCellValue(registro.getIdentificacion() != null ? registro.getIdentificacion() : "");
@@ -1651,7 +1651,7 @@ public class FileComparisonController {
                 double bonoAgencia = registro.getBonoAgencia() != null ? registro.getBonoAgencia() : 0.0;
                 double bonusTop100 = registro.getBonusTop100() != null ? registro.getBonusTop100() : 0.0;
                 double appliedDescuento = (registro.getPorcentajeDescuento() != null) ? registro.getPorcentajeDescuento() : descuento;
-                double tutora = (bonoAgencia * (1.0 - appliedDescuento/100.0)) + (bonusTop100 * (1.0 - appliedDescuento/100.0));
+                double tutora = bonoAgencia * (1.0 - appliedDescuento/100.0);
                 data.put("tutora", tutora);
                 
                 salsaRecords.add(data);
@@ -1961,7 +1961,7 @@ public class FileComparisonController {
                 double ba = bonoAgencia != null ? bonoAgencia : 0.0;
                 double bt = bonusTop100 != null ? bonusTop100 : 0.0;
                 double appliedDescuento = (porcentajeDescuento != null) ? porcentajeDescuento : 60.0;
-                valor = (ba * (1.0 - appliedDescuento/100.0)) + (bt * (1.0 - appliedDescuento/100.0));
+                valor = ba * (1.0 - appliedDescuento/100.0);
                 coins = totalMonedas != null ? totalMonedas : 0.0;
             } else if ("LIVEJOY".equals(sheet)) {
                 double ing = monedas != null ? monedas : 0.0;
@@ -2135,7 +2135,7 @@ public class FileComparisonController {
                 double bt = r.getBonusTop100() != null ? r.getBonusTop100() : 0.0;
                 double coins = r.getTotalMonedas() != null ? r.getTotalMonedas() : 0.0;
                 double appliedDescuento = (r.getPorcentajeDescuento() != null) ? r.getPorcentajeDescuento() : descuento;
-                double val = (ba * (1.0 - appliedDescuento/100.0)) + (bt * (1.0 - appliedDescuento/100.0));
+                double val = ba * (1.0 - appliedDescuento/100.0);
                 if (coins > 0.0 || val > 0.0) {
                     sc.setCoinsA(sc.getCoinsA() + coins);
                     sc.setTutoraA(sc.getTutoraA() + val);
@@ -2152,7 +2152,7 @@ public class FileComparisonController {
                 double bt = r.getBonusTop100() != null ? r.getBonusTop100() : 0.0;
                 double coins = r.getTotalMonedas() != null ? r.getTotalMonedas() : 0.0;
                 double appliedDescuento = (r.getPorcentajeDescuento() != null) ? r.getPorcentajeDescuento() : descuento;
-                double val = (ba * (1.0 - appliedDescuento/100.0)) + (bt * (1.0 - appliedDescuento/100.0));
+                double val = ba * (1.0 - appliedDescuento/100.0);
                 if (coins > 0.0 || val > 0.0) {
                     sc.setCoinsB(sc.getCoinsB() + coins);
                     sc.setTutoraB(sc.getTutoraB() + val);
