@@ -929,25 +929,34 @@ public class FileComparisonService {
                         }
 
                         Map<String, String> data = new LinkedHashMap<>();
+                        data.put("Sheet", "SALSA");
                         data.put("Nombre Completo", nombre.isEmpty() ? "Streamer " + cleanId : nombre);
                         
                         if (parts.length > 8) {
-                            String totalMonedas = parts[8].trim().replace(",", "").replace(".", "");
+                            String totalMonedas = parts[8].trim().replace(",", "");
+                            data.put("Total de Monedas", totalMonedas);
+                        } else if (parts.length > 7) {
+                            String totalMonedas = parts[7].trim().replace(",", "");
                             data.put("Total de Monedas", totalMonedas);
                         }
+                        
+                        String pagoAgenciaHoriz = "0";
+                        for (String part : parts) {
+                            if (part.contains("$")) {
+                                pagoAgenciaHoriz = part.replace("$", "").replace(",", "").trim();
+                                break;
+                            }
+                        }
+                        if ("0".equals(pagoAgenciaHoriz) && parts.length > 12) {
+                            pagoAgenciaHoriz = parts[12].trim().replace("$", "").replace(",", "").trim();
+                        }
+                        data.put("Bono de Agencia $", pagoAgenciaHoriz);
                         
                         if (parts.length > 11) {
                             String bonoTop = parts[11].trim().replace("$", "").replace(",", "").trim();
                             data.put("Bonus Top 100", bonoTop);
                         } else {
                             data.put("Bonus Top 100", "0");
-                        }
-                        
-                        if (parts.length > 12) {
-                            String pagoAgencia = parts[12].trim().replace("$", "").replace(",", "").trim();
-                            data.put("Bono de Agencia $", pagoAgencia);
-                        } else {
-                            data.put("Bono de Agencia $", "0");
                         }
 
                         FileRecord fileRecord = new FileRecord(cleanId, data, "CSV");
@@ -974,6 +983,7 @@ public class FileComparisonService {
                     }
                     
                     Map<String, String> data = new LinkedHashMap<>();
+                    data.put("Sheet", "SALSA");
                     data.put("Nombre Completo", nombre.isEmpty() ? "Streamer " + cleanId : nombre);
                     
                     // Verificar si los valores numéricos están tabulados en la siguiente línea o en vertical
@@ -986,8 +996,20 @@ public class FileComparisonService {
                         
                         if (parts.length >= 8) {
                             // Los valores están tabulados en la siguiente línea
-                            String totalMonedas = parts[7].trim().replace(",", "").replace(".", "");
+                            String totalMonedas = parts[7].trim().replace(",", "");
                             data.put("Total de Monedas", totalMonedas);
+                            
+                            String pagoAgencia = "0";
+                            for (String part : parts) {
+                                if (part.contains("$")) {
+                                    pagoAgencia = part.replace("$", "").replace(",", "").trim();
+                                    break;
+                                }
+                            }
+                            if ("0".equals(pagoAgencia) && parts.length > 11) {
+                                pagoAgencia = parts[11].trim().replace("$", "").replace(",", "").trim();
+                            }
+                            data.put("Bono de Agencia $", pagoAgencia);
                             
                             if (parts.length > 10) {
                                 String bonoTop = parts[10].trim().replace("$", "").replace(",", "").trim();
@@ -996,33 +1018,31 @@ public class FileComparisonService {
                                 data.put("Bonus Top 100", "0");
                             }
                             
-                            if (parts.length > 11) {
-                                String pagoAgencia = parts[11].trim().replace("$", "").replace(",", "").trim();
-                                data.put("Bono de Agencia $", pagoAgencia);
-                            } else {
-                                data.put("Bono de Agencia $", "0");
-                            }
-                            
                             i += 1; // avanzar 1 línea ya que los valores estaban en la siguiente
                         } else {
                             // Formato 100% vertical (una línea por celda)
                             if (i + 8 < lines.length) {
-                                String totalMonedas = lines[i + 8].trim().replace(",", "").replace(".", "");
+                                String totalMonedas = lines[i + 8].trim().replace(",", "");
                                 data.put("Total de Monedas", totalMonedas);
                             }
+                            
+                            String pagoAgencia = "0";
+                            for (int k = i + 1; k < Math.min(lines.length, i + 15); k++) {
+                                if (lines[k].contains("$")) {
+                                    pagoAgencia = lines[k].replace("$", "").replace(",", "").trim();
+                                    break;
+                                }
+                            }
+                            if ("0".equals(pagoAgencia) && i + 12 < lines.length) {
+                                pagoAgencia = lines[i + 12].trim().replace("$", "").replace(",", "").trim();
+                            }
+                            data.put("Bono de Agencia $", pagoAgencia);
                             
                             if (i + 11 < lines.length) {
                                 String bonoTop = lines[i + 11].trim().replace("$", "").replace(",", "").trim();
                                 data.put("Bonus Top 100", bonoTop);
                             } else {
                                 data.put("Bonus Top 100", "0");
-                            }
-                            
-                            if (i + 12 < lines.length) {
-                                String pagoAgencia = lines[i + 12].trim().replace("$", "").replace(",", "").trim();
-                                data.put("Bono de Agencia $", pagoAgencia);
-                            } else {
-                                data.put("Bono de Agencia $", "0");
                             }
                             
                             i += 12; // saltar los campos procesados de esta fila

@@ -294,35 +294,38 @@ public class HistoricoService {
         int actualizados = 0;
         for (HistoricoIngreso reg : registros) {
             String sheet = reg.getSheet();
-            if (sheet != null) {
-                sheet = sheet.trim().toUpperCase();
-                boolean modificado = false;
-                if ("SALSA".equals(sheet) && reg.getPorcentajeDescuento() == null) {
-                    reg.setPorcentajeDescuento(60.0);
+            boolean modificado = false;
+            if (sheet == null || sheet.trim().isEmpty()) {
+                sheet = "SALSA";
+                reg.setSheet("SALSA");
+                modificado = true;
+            }
+            sheet = sheet.trim().toUpperCase();
+            if ("SALSA".equals(sheet) && reg.getPorcentajeDescuento() == null) {
+                reg.setPorcentajeDescuento(60.0);
+                modificado = true;
+            } else if ("LIVEJOY".equals(sheet)) {
+                if (reg.getPorcentaje1() == null) {
+                    reg.setPorcentaje1(12.0);
                     modificado = true;
-                } else if ("LIVEJOY".equals(sheet)) {
-                    if (reg.getPorcentaje1() == null) {
-                        reg.setPorcentaje1(12.0);
-                        modificado = true;
-                    }
-                    if (reg.getPorcentaje2() == null) {
-                        reg.setPorcentaje2(40.0);
-                        modificado = true;
-                    }
-                } else if ("OLIVE".equals(sheet)) {
-                    if (reg.getPorcentaje1() == null) {
-                        reg.setPorcentaje1(60.0);
-                        modificado = true;
-                    }
-                    if (reg.getPorcentaje2() == null) {
-                        reg.setPorcentaje2(40.0);
-                        modificado = true;
-                    }
                 }
-                if (modificado) {
-                    historicoRepository.save(reg);
-                    actualizados++;
+                if (reg.getPorcentaje2() == null) {
+                    reg.setPorcentaje2(40.0);
+                    modificado = true;
                 }
+            } else if ("OLIVE".equals(sheet)) {
+                if (reg.getPorcentaje1() == null) {
+                    reg.setPorcentaje1(60.0);
+                    modificado = true;
+                }
+                if (reg.getPorcentaje2() == null) {
+                    reg.setPorcentaje2(40.0);
+                    modificado = true;
+                }
+            }
+            if (modificado) {
+                historicoRepository.save(reg);
+                actualizados++;
             }
         }
         if (actualizados > 0) {
