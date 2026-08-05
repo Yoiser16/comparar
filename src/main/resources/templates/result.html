@@ -4,24 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reporte de Auditoría Detallado</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script th:src="@{/js/tailwind.min.js}" src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-                        mono: ['"JetBrains Mono"', 'monospace'],
-                    },
-                    colors: {
-                        slate: { 850: '#1e293b', 900: '#0f172a' },
-                        accent: '#f97316', // Naranja
-                        brand: '#3b82f6',  // Azul
+        if (typeof tailwind !== 'undefined') {
+            tailwind.config = {
+                darkMode: 'class',
+                theme: {
+                    extend: {
+                        fontFamily: {
+                            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                            mono: ['"JetBrains Mono"', 'monospace'],
+                        },
+                        colors: {
+                            slate: { 850: '#1e293b', 900: '#0f172a' },
+                            accent: '#f97316', // Naranja
+                            brand: '#3b82f6',  // Azul
+                        }
                     }
                 }
-            }
+            };
         }
     </script>
     <script>
