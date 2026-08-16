@@ -859,6 +859,7 @@ public class FileComparisonController {
     @GetMapping("/historico")
     public String verHistorico(
             @RequestParam(value = "tab", required = false) String tab,
+            @RequestParam(value = "periodo", required = false) String periodo,
             @RequestParam(value = "compPA", required = false) String compPA,
             @RequestParam(value = "compPB", required = false) String compPB,
             @RequestParam(value = "descuento", defaultValue = "60") double descuento,
@@ -867,12 +868,24 @@ public class FileComparisonController {
             @RequestParam(value = "oliveP1", defaultValue = "60") double oliveP1,
             @RequestParam(value = "oliveP2", defaultValue = "40") double oliveP2,
             Model model) {
-        List<HistoricoIngreso> registros = historicoService.obtenerTodosLosRegistros();
         List<String> periodosDisponibles = historicoService.obtenerPeriodosDisponibles();
 
-        prepararDatosHistoricoPorSheet(model, registros, periodosDisponibles, null, descuento, p1, p2, oliveP1, oliveP2);
+        String periodoFiltro = periodo;
+        if (periodoFiltro == null || periodoFiltro.trim().isEmpty()) {
+            periodoFiltro = (!periodosDisponibles.isEmpty()) ? periodosDisponibles.get(0) : "all";
+        }
+
+        List<HistoricoIngreso> registros;
+        if ("all".equalsIgnoreCase(periodoFiltro)) {
+            registros = historicoService.obtenerTodosLosRegistros();
+        } else {
+            registros = historicoService.buscarPorPeriodo(periodoFiltro);
+        }
+
+        prepararDatosHistoricoPorSheet(model, registros, periodosDisponibles, periodoFiltro, descuento, p1, p2, oliveP1, oliveP2);
 
         // Activar pestaña por defecto
+        model.addAttribute("periodoSeleccionado", periodoFiltro);
         model.addAttribute("activeTab", tab != null ? tab.trim().toLowerCase() : "consolidado");
         model.addAttribute("descuento", descuento);
         model.addAttribute("p1", p1);
