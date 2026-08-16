@@ -187,29 +187,44 @@ public class FileComparisonService {
                 int bonoTopCol = -1;
                 int pagoAgenciaCol = -1;
 
-                // Buscar la fila de encabezados recorriendo las primeras 30 filas
-                for (int r = 0; r <= Math.min(30, sheet.getLastRowNum()); r++) {
+                // Buscar la fila de encabezados verdaderos (debe contener NOMBRE STREAMER y alguna columna de monedas/pago/match)
+                for (int r = 0; r <= Math.min(40, sheet.getLastRowNum()); r++) {
                     Row row = sheet.getRow(r);
                     if (row == null) continue;
 
+                    boolean hasStreamerCol = false;
+                    boolean hasCoinsOrPaymentCol = false;
+
                     for (Cell cell : row) {
                         String cellVal = getCellValueAsString(cell).toLowerCase(Locale.ROOT).trim();
-                        if (cellVal.contains("nombre streamer") || cellVal.contains("streamer") || cellVal.equalsIgnoreCase("id")) {
-                            headerRowIndex = r;
-                            nameOrIdCol = cell.getColumnIndex();
-                        } else if (cellVal.contains("total coins") || cellVal.contains("this week coins") || cellVal.equals("total de monedas")) {
-                            totalCoinsCol = cell.getColumnIndex();
-                        } else if (cellVal.contains("bono top") || cellVal.contains("bonus top")) {
-                            bonoTopCol = cell.getColumnIndex();
-                        } else if (cellVal.contains("pago agencia") || cellVal.contains("agency payment")) {
-                            pagoAgenciaCol = cell.getColumnIndex();
+                        if (cellVal.equals("nombre streamer") || (cellVal.contains("streamer") && !cellVal.contains("cobraron")) || cellVal.equalsIgnoreCase("id")) {
+                            hasStreamerCol = true;
+                        }
+                        if (cellVal.contains("total coins") || cellVal.contains("this week coins") || cellVal.contains("pago agencia") || cellVal.contains("match") || cellVal.contains("coins")) {
+                            hasCoinsOrPaymentCol = true;
                         }
                     }
 
-                    if (headerRowIndex != -1) {
+                    if (hasStreamerCol && hasCoinsOrPaymentCol) {
+                        headerRowIndex = r;
+                        for (Cell cell : row) {
+                            String cellVal = getCellValueAsString(cell).toLowerCase(Locale.ROOT).trim();
+                            if (cellVal.equals("nombre streamer") || (cellVal.contains("streamer") && !cellVal.contains("cobraron")) || cellVal.equalsIgnoreCase("id")) {
+                                nameOrIdCol = cell.getColumnIndex();
+                            } else if (cellVal.contains("total coins") || cellVal.contains("this week coins") || cellVal.equals("total de monedas")) {
+                                totalCoinsCol = cell.getColumnIndex();
+                            } else if (cellVal.contains("bono top") || cellVal.contains("bonus top")) {
+                                bonoTopCol = cell.getColumnIndex();
+                            } else if (cellVal.contains("pago agencia") || cellVal.contains("agency payment")) {
+                                pagoAgenciaCol = cell.getColumnIndex();
+                            }
+                        }
                         break;
                     }
                 }
+
+                logger.info("Excel SALSA - Fila de encabezado detectada en índice: {}, Columna Nombre/ID: {}, Total Coins: {}, Pago Agencia: {}", 
+                        headerRowIndex, nameOrIdCol, totalCoinsCol, pagoAgenciaCol);
 
                 // Si no se encontró fila de encabezado especial de SALSA, fallback al método estándar de Excel
                 if (headerRowIndex == -1 || nameOrIdCol == -1) {
@@ -251,9 +266,9 @@ public class FileComparisonService {
                         nombreVal = "Streamer " + cleanIdVal;
                     }
 
-                    String totalCoinsVal = totalCoinsCol != -1 ? getCellValueAsString(row.getCell(totalCoinsCol)).replace(",", "").trim() : "0";
-                    String bonoTopVal = bonoTopCol != -1 ? getCellValueAsString(row.getCell(bonoTopCol)).replace("$", "").replace(",", "").trim() : "0";
-                    String pagoAgenciaVal = pagoAgenciaCol != -1 ? getCellValueAsString(row.getCell(pagoAgenciaCol)).replace("$", "").replace(",", "").trim() : "0";
+                    String totalCoinsVal = totalCoinsCol != -1 ? getCellValueAsString(row.getCell(totalCoinsCol)).replaceAll("[^0-9.]", "").trim() : "0";
+                    String bonoTopVal = bonoTopCol != -1 ? getCellValueAsString(row.getCell(bonoTopCol)).replaceAll("[^0-9.]", "").trim() : "0";
+                    String pagoAgenciaVal = pagoAgenciaCol != -1 ? getCellValueAsString(row.getCell(pagoAgenciaCol)).replaceAll("[^0-9.]", "").trim() : "0";
 
                     Map<String, String> data = new LinkedHashMap<>();
                     data.put("Sheet", "SALSA");
