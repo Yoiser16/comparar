@@ -157,9 +157,12 @@ public class FileComparisonController {
                     continue;
                 String csvFileName = csvFile.getOriginalFilename();
                 if (csvFileName == null || 
-                    (!csvFileName.toLowerCase().endsWith(".csv") && !csvFileName.toLowerCase().endsWith(".txt"))) {
+                    (!csvFileName.toLowerCase().endsWith(".csv") && 
+                     !csvFileName.toLowerCase().endsWith(".txt") &&
+                     !csvFileName.toLowerCase().endsWith(".xlsx") &&
+                     !csvFileName.toLowerCase().endsWith(".xls"))) {
                     redirectAttributes.addFlashAttribute("error",
-                            "Todos los archivos de datos deben tener extensión .csv o .txt (pasted text): " + csvFileName);
+                            "Todos los archivos de reporte deben ser .csv, .txt, .xlsx o .xls: " + csvFileName);
                     return "redirect:/";
                 }
             }

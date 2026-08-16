@@ -20,6 +20,8 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
 import java.util.*;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 @Service
 public class FileComparisonService {
@@ -27,11 +29,14 @@ public class FileComparisonService {
     private static final Logger logger = LoggerFactory.getLogger(FileComparisonService.class);
 
     /**
-     * Extrae registros completos desde un archivo CSV con autodetección de
-     * delimitador
-     * y columna de ID.
+     * Extrae registros completos desde un archivo CSV o Excel con autodetección
      */
     public Map<String, FileRecord> extractRecordsFromCsv(MultipartFile file) throws IOException {
+        String filename = file.getOriginalFilename();
+        if (filename != null && (filename.toLowerCase(Locale.ROOT).endsWith(".xlsx") || filename.toLowerCase(Locale.ROOT).endsWith(".xls"))) {
+            return extractRecordsFromSalsaOrGenericExcel(file);
+        }
+
         // Leemos el contenido una sola vez para poder inspeccionarlo y luego parsearlo
         byte[] content = file.getBytes();
 
@@ -154,6 +159,119 @@ public class FileComparisonService {
         }
 
         logger.info("Total registros extraídos del CSV: {}", records.size());
+        return records;
+    }
+
+    /**
+     * Extrae registros desde un reporte de SALSA u otro reporte primario en formato Excel (.xlsx/.xls)
+     */
+    public Map<String, FileRecord> extractRecordsFromSalsaOrGenericExcel(MultipartFile file) throws IOException {
+        Map<String, FileRecord> records = new LinkedHashMap<>();
+        Workbook workbook = null;
+        String originalName = file.getOriginalFilename();
+
+        try {
+            if (originalName != null && originalName.toLowerCase(Locale.ROOT).endsWith(".xlsx")) {
+                workbook = new XSSFWorkbook(file.getInputStream());
+            } else {
+                workbook = new HSSFWorkbook(file.getInputStream());
+            }
+
+            for (int sheetIndex = 0; sheetIndex < workbook.getNumberOfSheets(); sheetIndex++) {
+                Sheet sheet = workbook.getSheetAt(sheetIndex);
+                if (sheet == null) continue;
+
+                int headerRowIndex = -1;
+                int nameOrIdCol = -1;
+                int totalCoinsCol = -1;
+                int bonoTopCol = -1;
+                int pagoAgenciaCol = -1;
+
+                // Buscar la fila de encabezados recorriendo las primeras 30 filas
+                for (int r = 0; r <= Math.min(30, sheet.getLastRowNum()); r++) {
+                    Row row = sheet.getRow(r);
+                    if (row == null) continue;
+
+                    for (Cell cell : row) {
+                        String cellVal = getCellValueAsString(cell).toLowerCase(Locale.ROOT).trim();
+                        if (cellVal.contains("nombre streamer") || cellVal.contains("streamer") || cellVal.equalsIgnoreCase("id")) {
+                            headerRowIndex = r;
+                            nameOrIdCol = cell.getColumnIndex();
+                        } else if (cellVal.contains("total coins") || cellVal.contains("this week coins") || cellVal.equals("total de monedas")) {
+                            totalCoinsCol = cell.getColumnIndex();
+                        } else if (cellVal.contains("bono top") || cellVal.contains("bonus top")) {
+                            bonoTopCol = cell.getColumnIndex();
+                        } else if (cellVal.contains("pago agencia") || cellVal.contains("agency payment")) {
+                            pagoAgenciaCol = cell.getColumnIndex();
+                        }
+                    }
+
+                    if (headerRowIndex != -1) {
+                        break;
+                    }
+                }
+
+                // Si no se encontró fila de encabezado especial de SALSA, fallback al método estándar de Excel
+                if (headerRowIndex == -1 || nameOrIdCol == -1) {
+                    Map<String, FileRecord> fallback = extractRecordsFromExcel(file);
+                    records.putAll(fallback);
+                    return records;
+                }
+
+                // Recorrer filas de datos
+                Pattern idRegex = Pattern.compile("(?i)ID:\\s*(\\d+)");
+                for (int r = headerRowIndex + 1; r <= sheet.getLastRowNum(); r++) {
+                    Row row = sheet.getRow(r);
+                    if (row == null) continue;
+
+                    Cell nameCell = row.getCell(nameOrIdCol);
+                    if (nameCell == null) continue;
+
+                    String nameCellStr = getCellValueAsString(nameCell).trim();
+                    if (nameCellStr.isEmpty()) continue;
+
+                    // Extraer ID
+                    String cleanIdVal = "";
+                    Matcher matcher = idRegex.matcher(nameCellStr);
+                    if (matcher.find()) {
+                        cleanIdVal = matcher.group(1);
+                    } else {
+                        cleanIdVal = cleanId(nameCellStr);
+                    }
+
+                    if (cleanIdVal.isEmpty()) continue;
+
+                    // Extraer Nombre
+                    String nombreVal = nameCellStr;
+                    Matcher nameMatcher = idRegex.matcher(nameCellStr);
+                    if (nameMatcher.find()) {
+                        nombreVal = nameCellStr.substring(0, nameMatcher.start()).replaceAll("(?i)id:?\\s*$", "").trim();
+                    }
+                    if (nombreVal.isEmpty()) {
+                        nombreVal = "Streamer " + cleanIdVal;
+                    }
+
+                    String totalCoinsVal = totalCoinsCol != -1 ? getCellValueAsString(row.getCell(totalCoinsCol)).replace(",", "").trim() : "0";
+                    String bonoTopVal = bonoTopCol != -1 ? getCellValueAsString(row.getCell(bonoTopCol)).replace("$", "").replace(",", "").trim() : "0";
+                    String pagoAgenciaVal = pagoAgenciaCol != -1 ? getCellValueAsString(row.getCell(pagoAgenciaCol)).replace("$", "").replace(",", "").trim() : "0";
+
+                    Map<String, String> data = new LinkedHashMap<>();
+                    data.put("Sheet", "SALSA");
+                    data.put("Nombre Completo", nombreVal);
+                    data.put("Total de Monedas", totalCoinsVal.isEmpty() ? "0" : totalCoinsVal);
+                    data.put("Bonus Top 100", bonoTopVal.isEmpty() ? "0" : bonoTopVal);
+                    data.put("Bono de Agencia $", pagoAgenciaVal.isEmpty() ? "0" : pagoAgenciaVal);
+
+                    records.put(cleanIdVal, new FileRecord(cleanIdVal, data, "CSV"));
+                }
+            }
+        } finally {
+            if (workbook != null) {
+                workbook.close();
+            }
+        }
+
+        logger.info("Total registros extraídos del Excel SALSA: {}", records.size());
         return records;
     }
 

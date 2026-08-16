@@ -81,10 +81,10 @@
                             
                             <!-- Modo Archivo (Por defecto) -->
                             <div id="containerFileMode" class="block">
-                                <input type="file" name="csvFiles" id="csvFile" accept=".csv,.txt" multiple class="hidden" onchange="updateUI(this, 'csvBox', 'csvIcon')">
+                                <input type="file" name="csvFiles" id="csvFile" accept=".csv,.txt,.xlsx,.xls" multiple class="hidden" onchange="updateUI(this, 'csvBox', 'csvIcon')">
                                 <label for="csvFile" id="csvBox" class="flex flex-col items-center justify-center h-28 md:h-32 border-2 border-dashed border-slate-600 rounded-xl cursor-pointer hover:border-brand-500 hover:bg-slate-700/50 transition-all">
                                     <svg id="csvIcon" class="w-8 h-8 text-slate-500 mb-2 group-hover:text-brand-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                    <span class="text-sm font-mono text-slate-300 file-name">Seleccionar .CSV o .TXT</span>
+                                    <span class="text-sm font-mono text-slate-300 file-name">Seleccionar Archivo (CSV, TXT, Excel .xlsx/.xls)</span>
                                 </label>
                             </div>
                             
