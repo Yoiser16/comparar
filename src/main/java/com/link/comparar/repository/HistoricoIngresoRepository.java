@@ -37,10 +37,26 @@ public interface HistoricoIngresoRepository extends JpaRepository<HistoricoIngre
     List<HistoricoIngreso> findByPeriodoComparacionOrderByFechaRegistroDesc(String periodoComparacion);
 
     /**
+     * Busca registros por plataforma/sheet
+     */
+    List<HistoricoIngreso> findBySheetIgnoreCaseOrderByFechaRegistroDesc(String sheet);
+
+    /**
+     * Busca registros por plataforma/sheet y periodo
+     */
+    List<HistoricoIngreso> findBySheetIgnoreCaseAndPeriodoComparacionOrderByFechaRegistroDesc(String sheet, String periodoComparacion);
+
+    /**
      * Obtiene todos los periodos únicos disponibles
      */
     @Query("SELECT DISTINCT h.periodoComparacion FROM HistoricoIngreso h WHERE h.periodoComparacion IS NOT NULL ORDER BY h.periodoComparacion DESC")
     List<String> findDistinctPeriodos();
+
+    /**
+     * Obtiene los periodos únicos disponibles para una plataforma/sheet específica
+     */
+    @Query("SELECT DISTINCT h.periodoComparacion FROM HistoricoIngreso h WHERE UPPER(h.sheet) = UPPER(?1) AND h.periodoComparacion IS NOT NULL ORDER BY h.periodoComparacion DESC")
+    List<String> findDistinctPeriodosBySheet(String sheet);
 
     /**
      * Verifica si ya existe un registro para una identificación en un periodo

@@ -208,26 +208,6 @@
             <span class="font-medium" th:text="${error}">Error</span>
         </div>
 
-        <!-- Selector de Período Backend (Opción 1: Carga Ultrarrápida) -->
-        <div class="mb-4 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-transparent dark:bg-gray-800 p-4 rounded-xl border border-amber-500/30 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
-            <div class="flex items-center gap-3">
-                <div class="p-2.5 bg-amber-600 text-white rounded-xl shadow font-bold flex items-center justify-center">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                </div>
-                <div>
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">Filtro de Período Principal</h3>
-                    <p class="text-xs text-slate-600 dark:text-slate-400">Mostrando registros del período: <span class="font-bold text-amber-700 dark:text-amber-400" th:text="${periodoSeleccionado == 'all' ? 'Todos los Períodos' : periodoSeleccionado}">-</span></p>
-                </div>
-            </div>
-            <form action="/historico" method="get" class="flex items-center gap-2 w-full sm:w-auto">
-                <input type="hidden" name="tab" th:value="${activeTab}">
-                <select name="periodo" onchange="this.form.submit()" class="w-full sm:w-auto px-3.5 py-2 text-xs font-bold rounded-lg bg-white dark:bg-gray-700 border border-amber-300 dark:border-gray-600 text-slate-800 dark:text-slate-100 shadow-sm focus:ring-2 focus:ring-amber-500 cursor-pointer">
-                    <option th:each="p : ${periodosDisponibles}" th:value="${p}" th:text="${'📅 Período: ' + p}" th:selected="${p == periodoSeleccionado}"></option>
-                    <option value="all" th:selected="${periodoSeleccionado == 'all'}">🌐 Cargar Todos los Períodos (Histórico Completo)</option>
-                </select>
-            </form>
-        </div>
-
         <!-- Buscador -->
         <div class="mb-6">
             <form action="/historico/buscar" method="get" class="flex gap-2">

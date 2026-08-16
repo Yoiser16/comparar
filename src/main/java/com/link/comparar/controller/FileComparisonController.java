@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.SessionAttribute;
 import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.multipart.MultipartFile;
@@ -859,7 +860,6 @@ public class FileComparisonController {
     @GetMapping("/historico")
     public String verHistorico(
             @RequestParam(value = "tab", required = false) String tab,
-            @RequestParam(value = "periodo", required = false) String periodo,
             @RequestParam(value = "compPA", required = false) String compPA,
             @RequestParam(value = "compPB", required = false) String compPB,
             @RequestParam(value = "descuento", defaultValue = "60") double descuento,
@@ -868,24 +868,12 @@ public class FileComparisonController {
             @RequestParam(value = "oliveP1", defaultValue = "60") double oliveP1,
             @RequestParam(value = "oliveP2", defaultValue = "40") double oliveP2,
             Model model) {
+        List<HistoricoIngreso> registros = historicoService.obtenerTodosLosRegistros();
         List<String> periodosDisponibles = historicoService.obtenerPeriodosDisponibles();
 
-        String periodoFiltro = periodo;
-        if (periodoFiltro == null || periodoFiltro.trim().isEmpty()) {
-            periodoFiltro = (!periodosDisponibles.isEmpty()) ? periodosDisponibles.get(0) : "all";
-        }
-
-        List<HistoricoIngreso> registros;
-        if ("all".equalsIgnoreCase(periodoFiltro)) {
-            registros = historicoService.obtenerTodosLosRegistros();
-        } else {
-            registros = historicoService.buscarPorPeriodo(periodoFiltro);
-        }
-
-        prepararDatosHistoricoPorSheet(model, registros, periodosDisponibles, periodoFiltro, descuento, p1, p2, oliveP1, oliveP2);
+        prepararDatosHistoricoPorSheet(model, registros, periodosDisponibles, null, descuento, p1, p2, oliveP1, oliveP2);
 
         // Activar pestaña por defecto
-        model.addAttribute("periodoSeleccionado", periodoFiltro);
         model.addAttribute("activeTab", tab != null ? tab.trim().toLowerCase() : "consolidado");
         model.addAttribute("descuento", descuento);
         model.addAttribute("p1", p1);
@@ -935,6 +923,95 @@ public class FileComparisonController {
         }
 
         return "historico";
+    }
+
+    /**
+     * Endpoint API AJAX para cargar registros de una plataforma de forma diferida e instantánea
+     */
+    @GetMapping("/historico/api/tabla")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> obtenerTablaHistoricoAjax(
+            @RequestParam(value = "sheet", required = false, defaultValue = "SALSA") String sheet,
+            @RequestParam(value = "periodo", required = false, defaultValue = "all") String periodo,
+            @RequestParam(value = "descuento", defaultValue = "60") double descuento,
+            @RequestParam(value = "p1", defaultValue = "12") double p1,
+            @RequestParam(value = "p2", defaultValue = "40") double p2,
+            @RequestParam(value = "oliveP1", defaultValue = "60") double oliveP1,
+            @RequestParam(value = "oliveP2", defaultValue = "40") double oliveP2) {
+
+        List<HistoricoIngreso> registros;
+        if ("all".equalsIgnoreCase(periodo)) {
+            registros = historicoService.buscarPorSheet(sheet);
+        } else {
+            registros = historicoService.buscarPorSheetYPeriodo(sheet, periodo);
+        }
+
+        List<Map<String, Object>> rows = transformRegistrosParaSheetJson(registros, sheet, descuento, p1, p2, oliveP1, oliveP2);
+
+        double totalTutora = rows.stream()
+                .mapToDouble(r -> r.get("tutora") != null ? (Double) r.get("tutora") : 0.0)
+                .sum();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("records", rows);
+        response.put("totalTutora", totalTutora);
+
+        return ResponseEntity.ok(response);
+    }
+
+    private List<Map<String, Object>> transformRegistrosParaSheetJson(
+            List<HistoricoIngreso> registros, String sheet,
+            double descuento, double p1, double p2, double oliveP1, double oliveP2) {
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        String normSheet = sheet != null ? sheet.trim().toUpperCase() : "";
+
+        for (HistoricoIngreso registro : registros) {
+            String rSheet = normalizeSheet(registro.getSheet());
+            if (!normSheet.isEmpty() && !normSheet.equals(rSheet)) {
+                continue;
+            }
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("id", registro.getIdentificacion());
+            data.put("nombre", registro.getNombreCompleto());
+            data.put("periodo", registro.getPeriodoComparacion());
+            data.put("fechaRegistro", registro.getFechaRegistro() != null ? registro.getFechaRegistro().toString() : "");
+            data.put("nombreTutora", registro.getNombreTutora() != null ? registro.getNombreTutora() : "-");
+
+            if ("SALSA".equals(rSheet)) {
+                data.put("totalCoins", registro.getTotalMonedas() != null ? registro.getTotalMonedas() : 0.0);
+                double bonoAgencia = registro.getBonoAgencia() != null ? registro.getBonoAgencia() : 0.0;
+                double appliedDescuento = (registro.getPorcentajeDescuento() != null) ? registro.getPorcentajeDescuento() : descuento;
+                double tutora = bonoAgencia * (1.0 - appliedDescuento / 100.0);
+                data.put("tutora", tutora);
+            } else if ("LIVEJOY".equals(rSheet)) {
+                data.put("usuario", registro.getNombreCompleto());
+                data.put("montoDolares", registro.getMonedas() != null ? registro.getMonedas() : 0.0);
+                data.put("nombreStreamers", registro.getNombreCompleto());
+                double ingresos = registro.getMonedas() != null ? registro.getMonedas() : 0.0;
+                double appliedP1 = (registro.getPorcentaje1() != null) ? registro.getPorcentaje1() : p1;
+                double appliedP2 = (registro.getPorcentaje2() != null) ? registro.getPorcentaje2() : p2;
+                double tutora = ingresos * (appliedP1 / 100.0) * (appliedP2 / 100.0);
+                data.put("tutora", tutora);
+            } else if ("OLIVE".equals(rSheet)) {
+                data.put("monedas", registro.getMonedas() != null ? registro.getMonedas() : 0.0);
+                data.put("nivel", registro.getNivel() != null ? registro.getNivel() : "-");
+                data.put("recompensa", registro.getRecompensaEvento() != null ? registro.getRecompensaEvento() : 0.0);
+                double ap = registro.getBonoAgencia() != null ? registro.getBonoAgencia() : 0.0;
+                double br = registro.getBonusRevenue() != null ? registro.getBonusRevenue() : 0.0;
+                double p2Val = registro.getPorcentaje2() != null ? registro.getPorcentaje2() : oliveP2;
+                double comisionBase = (registro.getMonedas() != null ? registro.getMonedas() : 0.0) * 0.10;
+                double pagoTutora = (comisionBase * (p2Val / 100.0)) + (br / 3.0);
+                data.put("pagoAgencia", ap);
+                data.put("bonusRevenue", br);
+                data.put("pagoTutora", pagoTutora);
+                data.put("tutora", pagoTutora);
+            }
+
+            result.add(data);
+        }
+        return result;
     }
 
     /**
@@ -1729,27 +1806,10 @@ public class FileComparisonController {
                 .mapToDouble(r -> (Double) r.get("tutora"))
                 .sum();
         
-        // Extraer períodos únicos por hoja
-        List<String> periodosSalsa = salsaRecords.stream()
-                .map(r -> (String) r.get("periodo"))
-                .filter(p -> p != null && !p.isEmpty())
-                .distinct()
-                .sorted()
-                .toList();
-        
-        List<String> periodosLivejoy = livejoyRecords.stream()
-                .map(r -> (String) r.get("periodo"))
-                .filter(p -> p != null && !p.isEmpty())
-                .distinct()
-                .sorted()
-                .toList();
-        
-        List<String> periodosOlive = oliveRecords.stream()
-                .map(r -> (String) r.get("periodo"))
-                .filter(p -> p != null && !p.isEmpty())
-                .distinct()
-                .sorted()
-                .toList();
+        // Extraer períodos únicos específicos por plataforma desde la BD
+        List<String> periodosSalsa = historicoService.obtenerPeriodosDisponiblesPorSheet("SALSA");
+        List<String> periodosLivejoy = historicoService.obtenerPeriodosDisponiblesPorSheet("LIVEJOY");
+        List<String> periodosOlive = historicoService.obtenerPeriodosDisponiblesPorSheet("OLIVE");
         
         model.addAttribute("salsaRecords", salsaRecords);
         model.addAttribute("livejoyRecords", livejoyRecords);

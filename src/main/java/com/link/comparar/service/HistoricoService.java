@@ -137,10 +137,31 @@ public class HistoricoService {
     }
 
     /**
+     * Busca registros por plataforma/sheet
+     */
+    public List<HistoricoIngreso> buscarPorSheet(String sheet) {
+        return historicoRepository.findBySheetIgnoreCaseOrderByFechaRegistroDesc(sheet);
+    }
+
+    /**
+     * Busca registros por plataforma/sheet y periodo
+     */
+    public List<HistoricoIngreso> buscarPorSheetYPeriodo(String sheet, String periodoComparacion) {
+        return historicoRepository.findBySheetIgnoreCaseAndPeriodoComparacionOrderByFechaRegistroDesc(sheet, periodoComparacion);
+    }
+
+    /**
      * Obtiene todos los periodos únicos disponibles
      */
     public List<String> obtenerPeriodosDisponibles() {
         return historicoRepository.findDistinctPeriodos();
+    }
+
+    /**
+     * Obtiene los periodos únicos disponibles para una plataforma/sheet específica
+     */
+    public List<String> obtenerPeriodosDisponiblesPorSheet(String sheet) {
+        return historicoRepository.findDistinctPeriodosBySheet(sheet);
     }
 
     /**
