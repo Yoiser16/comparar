@@ -11,8 +11,8 @@ Una aplicación web para comparar IDs entre archivos CSV y Excel.
 
 ## 📋 Requisitos
 
-- Java 17 o superior
-- Maven 3.6 o superior
+- Java 25 o superior
+- Maven 3.9 o superior
 
 ## 🛠️ Instalación y Ejecución Local
 

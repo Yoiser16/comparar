@@ -351,6 +351,29 @@
                         </tbody>
                     </table>
                 </div>
+                <!-- Barra de Paginación Consolidado -->
+                <div th:if="${not #lists.isEmpty(consolidadoRecords)}" class="px-4 py-3 bg-slate-50 dark:bg-gray-800/80 border-t border-slate-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-500 dark:text-slate-400 font-medium">Mostrar</span>
+                        <select onchange="changePageSize('consolidado', this.value)" class="px-2 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded text-slate-700 dark:text-slate-200 font-semibold focus:ring-2 focus:ring-[#c2272d]">
+                            <option value="25">25</option>
+                            <option value="50" selected>50</option>
+                            <option value="100">100</option>
+                            <option value="all">Todos</option>
+                        </select>
+                        <span class="text-slate-500 dark:text-slate-400 font-medium">filas por página</span>
+                    </div>
+                    <div class="text-slate-500 dark:text-slate-400 font-medium">
+                        Mostrando <span id="startIdx_consolidado" class="font-bold text-slate-700 dark:text-slate-200">1</span> a <span id="endIdx_consolidado" class="font-bold text-slate-700 dark:text-slate-200">50</span> de <span id="totalCount_consolidado" class="font-bold text-slate-700 dark:text-slate-200">0</span> registros
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button type="button" onclick="goToPage('consolidado', 1)" id="btnFirst_consolidado" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">«</button>
+                        <button type="button" onclick="changePage('consolidado', -1)" id="btnPrev_consolidado" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">‹</button>
+                        <span class="px-3 py-1 bg-slate-200 dark:bg-gray-700 font-bold text-slate-800 dark:text-slate-100 rounded" id="pageNumber_consolidado">Pág 1 / 1</span>
+                        <button type="button" onclick="changePage('consolidado', 1)" id="btnNext_consolidado" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">›</button>
+                        <button type="button" onclick="goToLastPage('consolidado')" id="btnLast_consolidado" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">»</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -463,6 +486,29 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+                <!-- Barra de Paginación SALSA -->
+                <div th:if="${not #lists.isEmpty(salsaRecords)}" class="px-4 py-3 bg-slate-50 dark:bg-gray-800/80 border-t border-slate-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-500 dark:text-slate-400 font-medium">Mostrar</span>
+                        <select onchange="changePageSize('salsa', this.value)" class="px-2 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded text-slate-700 dark:text-slate-200 font-semibold focus:ring-2 focus:ring-amber-500">
+                            <option value="25">25</option>
+                            <option value="50" selected>50</option>
+                            <option value="100">100</option>
+                            <option value="all">Todos</option>
+                        </select>
+                        <span class="text-slate-500 dark:text-slate-400 font-medium">filas por página</span>
+                    </div>
+                    <div class="text-slate-500 dark:text-slate-400 font-medium">
+                        Mostrando <span id="startIdx_salsa" class="font-bold text-slate-700 dark:text-slate-200">1</span> a <span id="endIdx_salsa" class="font-bold text-slate-700 dark:text-slate-200">50</span> de <span id="totalCount_salsa" class="font-bold text-slate-700 dark:text-slate-200">0</span> registros
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button type="button" onclick="goToPage('salsa', 1)" id="btnFirst_salsa" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">«</button>
+                        <button type="button" onclick="changePage('salsa', -1)" id="btnPrev_salsa" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">‹</button>
+                        <span class="px-3 py-1 bg-slate-200 dark:bg-gray-700 font-bold text-slate-800 dark:text-slate-100 rounded" id="pageNumber_salsa">Pág 1 / 1</span>
+                        <button type="button" onclick="changePage('salsa', 1)" id="btnNext_salsa" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">›</button>
+                        <button type="button" onclick="goToLastPage('salsa')" id="btnLast_salsa" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">»</button>
+                    </div>
                 </div>
             </div>
 
@@ -662,6 +708,29 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+                <!-- Barra de Paginación LIVEJOY -->
+                <div th:if="${not #lists.isEmpty(livejoyRecords)}" class="px-4 py-3 bg-slate-50 dark:bg-gray-800/80 border-t border-slate-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-500 dark:text-slate-400 font-medium">Mostrar</span>
+                        <select onchange="changePageSize('livejoy', this.value)" class="px-2 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded text-slate-700 dark:text-slate-200 font-semibold focus:ring-2 focus:ring-purple-500">
+                            <option value="25">25</option>
+                            <option value="50" selected>50</option>
+                            <option value="100">100</option>
+                            <option value="all">Todos</option>
+                        </select>
+                        <span class="text-slate-500 dark:text-slate-400 font-medium">filas por página</span>
+                    </div>
+                    <div class="text-slate-500 dark:text-slate-400 font-medium">
+                        Mostrando <span id="startIdx_livejoy" class="font-bold text-slate-700 dark:text-slate-200">1</span> a <span id="endIdx_livejoy" class="font-bold text-slate-700 dark:text-slate-200">50</span> de <span id="totalCount_livejoy" class="font-bold text-slate-700 dark:text-slate-200">0</span> registros
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button type="button" onclick="goToPage('livejoy', 1)" id="btnFirst_livejoy" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">«</button>
+                        <button type="button" onclick="changePage('livejoy', -1)" id="btnPrev_livejoy" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">‹</button>
+                        <span class="px-3 py-1 bg-slate-200 dark:bg-gray-700 font-bold text-slate-800 dark:text-slate-100 rounded" id="pageNumber_livejoy">Pág 1 / 1</span>
+                        <button type="button" onclick="changePage('livejoy', 1)" id="btnNext_livejoy" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">›</button>
+                        <button type="button" onclick="goToLastPage('livejoy')" id="btnLast_livejoy" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">»</button>
+                    </div>
                 </div>
             </div>
 
@@ -866,6 +935,29 @@
                         </tbody>
                     </table>
                 </div>
+                <!-- Barra de Paginación OLIVE -->
+                <div th:if="${not #lists.isEmpty(oliveRecords)}" class="px-4 py-3 bg-slate-50 dark:bg-gray-800/80 border-t border-slate-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-500 dark:text-slate-400 font-medium">Mostrar</span>
+                        <select onchange="changePageSize('olive', this.value)" class="px-2 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded text-slate-700 dark:text-slate-200 font-semibold focus:ring-2 focus:ring-green-500">
+                            <option value="25">25</option>
+                            <option value="50" selected>50</option>
+                            <option value="100">100</option>
+                            <option value="all">Todos</option>
+                        </select>
+                        <span class="text-slate-500 dark:text-slate-400 font-medium">filas por página</span>
+                    </div>
+                    <div class="text-slate-500 dark:text-slate-400 font-medium">
+                        Mostrando <span id="startIdx_olive" class="font-bold text-slate-700 dark:text-slate-200">1</span> a <span id="endIdx_olive" class="font-bold text-slate-700 dark:text-slate-200">50</span> de <span id="totalCount_olive" class="font-bold text-slate-700 dark:text-slate-200">0</span> registros
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button type="button" onclick="goToPage('olive', 1)" id="btnFirst_olive" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">«</button>
+                        <button type="button" onclick="changePage('olive', -1)" id="btnPrev_olive" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">‹</button>
+                        <span class="px-3 py-1 bg-slate-200 dark:bg-gray-700 font-bold text-slate-800 dark:text-slate-100 rounded" id="pageNumber_olive">Pág 1 / 1</span>
+                        <button type="button" onclick="changePage('olive', 1)" id="btnNext_olive" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">›</button>
+                        <button type="button" onclick="goToLastPage('olive')" id="btnLast_olive" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">»</button>
+                    </div>
+                </div>
             </div>
 
             <!-- Comparison Table: When IS comparing Olive -->
@@ -1003,6 +1095,94 @@
     </div>
 
     <script>
+        // Motor de Paginación para las 4 Tablas
+        const paginationState = {
+            consolidado: { currentPage: 1, pageSize: 50 },
+            salsa: { currentPage: 1, pageSize: 50 },
+            livejoy: { currentPage: 1, pageSize: 50 },
+            olive: { currentPage: 1, pageSize: 50 }
+        };
+
+        function updatePaginationForTable(tableKey) {
+            const state = paginationState[tableKey];
+            if (!state) return;
+
+            const rowClass = '.data-row-' + tableKey;
+            const allRows = Array.from(document.querySelectorAll(rowClass));
+            if (allRows.length === 0) return;
+
+            const matchingRows = allRows.filter(row => !row.classList.contains('hidden-filter'));
+
+            const totalCount = matchingRows.length;
+            const pageSize = state.pageSize === 'all' ? (totalCount || 1) : parseInt(state.pageSize, 10);
+            const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+
+            if (state.currentPage > totalPages) state.currentPage = totalPages;
+            if (state.currentPage < 1) state.currentPage = 1;
+
+            const startIdx = (state.currentPage - 1) * pageSize;
+            const endIdx = state.pageSize === 'all' ? totalCount : Math.min(startIdx + pageSize, totalCount);
+
+            matchingRows.forEach((row, idx) => {
+                if (idx >= startIdx && idx < endIdx) {
+                    row.classList.remove('hidden-page');
+                } else {
+                    row.classList.add('hidden-page');
+                }
+            });
+
+            allRows.forEach(row => {
+                const isMatching = !row.classList.contains('hidden-filter');
+                const isPageVisible = !row.classList.contains('hidden-page');
+                row.style.display = (isMatching && isPageVisible) ? '' : 'none';
+            });
+
+            const totalEl = document.getElementById(`totalCount_${tableKey}`);
+            const startEl = document.getElementById(`startIdx_${tableKey}`);
+            const endEl = document.getElementById(`endIdx_${tableKey}`);
+            const pageNumEl = document.getElementById(`pageNumber_${tableKey}`);
+            const btnFirst = document.getElementById(`btnFirst_${tableKey}`);
+            const btnPrev = document.getElementById(`btnPrev_${tableKey}`);
+            const btnNext = document.getElementById(`btnNext_${tableKey}`);
+            const btnLast = document.getElementById(`btnLast_${tableKey}`);
+
+            if (totalEl) totalEl.textContent = totalCount;
+            if (startEl) startEl.textContent = totalCount === 0 ? 0 : startIdx + 1;
+            if (endEl) endEl.textContent = endIdx;
+            if (pageNumEl) pageNumEl.textContent = `Pág ${state.currentPage} / ${totalPages}`;
+
+            if (btnFirst) btnFirst.disabled = (state.currentPage <= 1);
+            if (btnPrev) btnPrev.disabled = (state.currentPage <= 1);
+            if (btnNext) btnNext.disabled = (state.currentPage >= totalPages);
+            if (btnLast) btnLast.disabled = (state.currentPage >= totalPages);
+        }
+
+        function changePage(tableKey, delta) {
+            paginationState[tableKey].currentPage += delta;
+            updatePaginationForTable(tableKey);
+        }
+
+        function goToPage(tableKey, pageNum) {
+            paginationState[tableKey].currentPage = pageNum;
+            updatePaginationForTable(tableKey);
+        }
+
+        function goToLastPage(tableKey) {
+            const state = paginationState[tableKey];
+            const allRows = Array.from(document.querySelectorAll('.data-row-' + tableKey));
+            const matchingRows = allRows.filter(row => !row.classList.contains('hidden-filter'));
+            const pageSize = state.pageSize === 'all' ? matchingRows.length : parseInt(state.pageSize, 10);
+            const totalPages = Math.max(1, Math.ceil(matchingRows.length / pageSize));
+            state.currentPage = totalPages;
+            updatePaginationForTable(tableKey);
+        }
+
+        function changePageSize(tableKey, size) {
+            paginationState[tableKey].pageSize = size;
+            paginationState[tableKey].currentPage = 1;
+            updatePaginationForTable(tableKey);
+        }
+
         // Dark mode toggle
         const darkModeToggle = document.getElementById('darkModeToggle');
         darkModeToggle.addEventListener('click', () => {
@@ -1099,7 +1279,8 @@
         function updateRowVisibility(row, tabName) {
             const hasHiddenPeriod = row.classList.contains('hidden-period');
             const hasHiddenSearch = row.classList.contains('hidden-search');
-            row.classList.toggle('hidden', hasHiddenPeriod || hasHiddenSearch);
+            const isHiddenFilter = hasHiddenPeriod || hasHiddenSearch;
+            row.classList.toggle('hidden-filter', isHiddenFilter);
         }
 
         function applyPeriodFilter(tabName) {
@@ -1114,19 +1295,23 @@
             });
 
             updateFilteredTotals();
+            if (paginationState[tabName]) {
+                paginationState[tabName].currentPage = 1;
+                updatePaginationForTable(tabName);
+            }
         }
 
         function updateFilteredTotals() {
             let salsaTotal = 0;
             document.querySelectorAll('.data-row-salsa').forEach(row => {
-                if (!row.classList.contains('hidden')) {
+                if (!row.classList.contains('hidden-filter')) {
                     salsaTotal += parseFloat(row.getAttribute('data-tutora') || '0');
                 }
             });
 
             let livejoyTotal = 0;
             document.querySelectorAll('.data-row-livejoy').forEach(row => {
-                if (!row.classList.contains('hidden')) {
+                if (!row.classList.contains('hidden-filter')) {
                     livejoyTotal += parseFloat(row.getAttribute('data-tutora') || '0');
                 }
             });
@@ -1138,7 +1323,7 @@
             let oliveTotalPagoTutora = 0;
 
             document.querySelectorAll('.data-row-olive').forEach(row => {
-                if (!row.classList.contains('hidden')) {
+                if (!row.classList.contains('hidden-filter')) {
                     oliveTotalMonedas += parseFloat(row.getAttribute('data-monedas') || '0');
                     oliveTotalRecompensa += parseFloat(row.getAttribute('data-recompensa') || '0');
                     oliveTotalPagoAgencia += parseFloat(row.getAttribute('data-pagoagencia') || '0');
@@ -1393,8 +1578,13 @@
                 }
 
                 const mustShow = matchCobro && matchPlatform && matchPeriod && matchSearch;
-                row.classList.toggle('hidden', !mustShow);
+                row.classList.toggle('hidden-filter', !mustShow);
             });
+
+            if (paginationState.consolidado) {
+                paginationState.consolidado.currentPage = 1;
+                updatePaginationForTable('consolidado');
+            }
         }
 
         function filterComparison(tab) {
@@ -1590,6 +1780,12 @@
         applyPeriodFilter('salsa');
         applyPeriodFilter('livejoy');
         applyPeriodFilter('olive');
+        filterConsolidado();
+
+        updatePaginationForTable('consolidado');
+        updatePaginationForTable('salsa');
+        updatePaginationForTable('livejoy');
+        updatePaginationForTable('olive');
 
         async function aplicarPorcentajes(platform) {
             const activeTab = getActiveTabName();

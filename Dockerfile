@@ -1,5 +1,5 @@
-# Usar imagen base de Java 17
-FROM eclipse-temurin:17-jdk-alpine as build
+# Usar imagen base de Java 25
+FROM eclipse-temurin:25-jdk-alpine as build
 
 # Directorio de trabajo
 WORKDIR /workspace/app
@@ -19,7 +19,7 @@ COPY src src
 RUN ./mvnw clean package -DskipTests
 
 # Etapa de ejecución
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 
 # Crear usuario no-root
 RUN addgroup -S spring && adduser -S spring -G spring
