@@ -873,8 +873,8 @@ public class FileComparisonController {
 
         prepararDatosHistoricoPorSheet(model, registros, periodosDisponibles, null, descuento, p1, p2, oliveP1, oliveP2);
 
-        // Activar pestaña por defecto
-        model.addAttribute("activeTab", tab != null ? tab.trim().toLowerCase() : "consolidado");
+        // Activar pestaña por defecto (SALSA)
+        model.addAttribute("activeTab", tab != null ? tab.trim().toLowerCase() : "salsa");
         model.addAttribute("descuento", descuento);
         model.addAttribute("p1", p1);
         model.addAttribute("p2", p2);
@@ -1823,46 +1823,6 @@ public class FileComparisonController {
         model.addAttribute("registros", registros);
         model.addAttribute("periodosDisponibles", periodosDisponibles);
         model.addAttribute("periodoSeleccionado", periodoSeleccionado);
-
-        // Consolidado General
-        List<String> periodosOrdenados = new ArrayList<>(periodosDisponibles);
-        java.util.Collections.reverse(periodosOrdenados);
-
-        Map<String, ConsolidadoPersona> consolidadoMap = new java.util.LinkedHashMap<>();
-        for (HistoricoIngreso registro : registros) {
-            String id = registro.getIdentificacion();
-            if (id == null || id.trim().isEmpty()) continue;
-            
-            String normalizedId = id.trim();
-            ConsolidadoPersona persona = consolidadoMap.computeIfAbsent(normalizedId, k -> {
-                String nombre = registro.getNombreCompleto();
-                return new ConsolidadoPersona(normalizedId, nombre != null ? nombre : "Sin nombre");
-            });
-            
-            if ("Sin nombre".equals(persona.getNombreCompleto()) && registro.getNombreCompleto() != null && !registro.getNombreCompleto().isEmpty()) {
-                persona.nombreCompleto = registro.getNombreCompleto();
-            }
-
-            String sheet = normalizeSheet(registro.getSheet());
-            persona.agregarIngreso(
-                registro.getPeriodoComparacion(),
-                sheet,
-                registro.getMonedas(),
-                registro.getTotalMonedas(),
-                registro.getBonoAgencia(),
-                registro.getBonusTop100(),
-                registro.getRecompensaEvento(),
-                registro.getPorcentajeDescuento(),
-                registro.getPorcentaje1(),
-                registro.getPorcentaje2()
-            );
-        }
-
-        List<ConsolidadoPersona> consolidadoRecords = new ArrayList<>(consolidadoMap.values());
-        consolidadoRecords.sort((a, b) -> Double.compare(b.getTotalAcumulado(), a.getTotalAcumulado()));
-
-        model.addAttribute("consolidadoRecords", consolidadoRecords);
-        model.addAttribute("periodosOrdenados", periodosOrdenados);
     }
 
     /**

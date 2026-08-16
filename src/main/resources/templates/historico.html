@@ -229,10 +229,7 @@
         <!-- Tabs Navigation -->
         <div class="mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700">
             <nav class="flex gap-1 p-2">
-                <button onclick="showTab('consolidado')" id="tabConsolidado" class="tab-button flex-1 px-4 py-3 rounded-lg font-bold text-sm transition-colors bg-[#c2272d] text-white">
-                    CONSOLIDADO GENERAL
-                </button>
-                <button onclick="showTab('salsa')" id="tabSalsa" class="tab-button flex-1 px-4 py-3 rounded-lg font-bold text-sm transition-colors bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-600">
+                <button onclick="showTab('salsa')" id="tabSalsa" class="tab-button flex-1 px-4 py-3 rounded-lg font-bold text-sm transition-colors bg-amber-600 text-white">
                     SALSA (<span th:text="${#lists.size(salsaRecords)}">0</span>)
                 </button>
                 <button onclick="showTab('livejoy')" id="tabLivejoy" class="tab-button flex-1 px-4 py-3 rounded-lg font-bold text-sm transition-colors bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-600">
@@ -244,141 +241,8 @@
             </nav>
         </div>
 
-        <!-- CONSOLIDADO Tab Content -->
-        <div id="contentConsolidado" class="tab-content">
-            <!-- Controles de Filtros del Consolidado -->
-            <div class="mb-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 flex flex-col md:flex-row gap-4 justify-between items-center">
-                <div class="flex flex-wrap gap-4 items-center w-full md:w-auto">
-                    <!-- Estado de cobro -->
-                    <div class="flex flex-col gap-1">
-                        <label class="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500">Estado de Cobro</label>
-                        <select id="filterCobro" class="px-3 py-2 text-xs font-semibold rounded bg-slate-100 dark:bg-gray-700 border-none text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-[#c2272d]">
-                            <option value="all">Todos</option>
-                            <option value="cobraron">Cobraron algo</option>
-                            <option value="no-cobraron">No cobraron</option>
-                        </select>
-                    </div>
-
-                    <!-- Plataforma -->
-                    <div class="flex flex-col gap-1">
-                        <label class="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500">Plataforma</label>
-                        <select id="filterPlataforma" class="px-3 py-2 text-xs font-semibold rounded bg-slate-100 dark:bg-gray-700 border-none text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-[#c2272d]">
-                            <option value="all">Todas</option>
-                            <option value="SALSA">SALSA</option>
-                            <option value="LIVEJOY">LIVEJOY</option>
-                            <option value="OLIVE">OLIVE</option>
-                        </select>
-                    </div>
-
-                    <!-- Período de cobro específico -->
-                    <div class="flex flex-col gap-1">
-                        <label class="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500">Cobró en Período</label>
-                        <select id="filterPeriodoCobro" class="px-3 py-2 text-xs font-semibold rounded bg-slate-100 dark:bg-gray-700 border-none text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-[#c2272d]">
-                            <option value="all">Cualquier período</option>
-                            <option th:each="periodo : ${periodosOrdenados}" th:value="${periodo}" th:text="${periodo}">Período</option>
-                        </select>
-                    </div>
-
-                    <!-- Botón Limpiar Filtros -->
-                    <div class="flex flex-col gap-1 self-end">
-                        <button type="button" id="clearConsolidadoFiltersBtn" onclick="clearConsolidadoFilters()" class="px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded transition-colors shadow-sm flex items-center gap-1.5 h-[34px]" title="Limpiar todos los filtros">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                            Limpiar Filtros
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Input de búsqueda específica consolidada -->
-                <div class="flex flex-col gap-1 w-full md:w-64">
-                    <label class="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500">Buscar en Consolidado</label>
-                    <input type="text" id="consolidadoSearchInput" class="px-3 py-2 text-xs rounded bg-slate-100 dark:bg-gray-700 border-none text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-[#c2272d]" placeholder="Buscar ID, nombre, plataforma...">
-                </div>
-            </div>
-
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 overflow-hidden">
-                <div class="overflow-x-auto custom-scrollbar">
-                    <table class="min-w-full border-collapse">
-                        <thead class="bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-slate-200">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600 sticky-col-id">ID</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600 sticky-col-name">Nombre</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Plataformas</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Semanas Cobradas</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Total Acumulado</th>
-                                <th th:each="periodo : ${periodosOrdenados}" 
-                                     th:text="${periodo}" 
-                                     th:attr="data-period=${periodo}"
-                                     class="period-col hidden px-4 py-3 text-center text-xs font-bold uppercase tracking-wider border border-slate-300 dark:border-gray-600">Semana</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white dark:bg-gray-800">
-                            <tr th:if="${#lists.isEmpty(consolidadoRecords)}">
-                                <td id="noRecordsCell" th:colspan="${5 + #lists.size(periodosOrdenados)}" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400 italic border border-slate-300 dark:border-gray-600">
-                                    No hay registros consolidados
-                                </td>
-                            </tr>
-                            <tr th:each="persona : ${consolidadoRecords}" class="hover-row transition-colors data-row-consolidado">
-                                <td class="px-4 py-3 whitespace-nowrap text-sm font-mono font-bold text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-gray-600 sticky-col-id">
-                                    <a th:href="@{/historico/usuario/{id}(id=${persona.identificacion})}" class="text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:underline" th:text="${persona.identificacion}">ID</a>
-                                </td>
-                                <td class="px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium border border-slate-300 dark:border-gray-600 sticky-col-name">
-                                    <a th:href="@{/historico/usuario/{id}(id=${persona.identificacion})}" class="text-slate-900 dark:text-slate-100 hover:text-orange-600 dark:hover:text-orange-400 hover:underline" th:text="${persona.nombreCompleto}">Nombre</a>
-                                </td>
-                                <td class="px-4 py-3 text-sm border border-slate-300 dark:border-gray-600">
-                                    <div class="flex gap-1">
-                                        <span th:if="${#sets.contains(persona.plataformas, 'SALSA')}" class="px-1.5 py-0.5 text-[9px] font-bold bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 rounded shadow-sm">SALSA</span>
-                                        <span th:if="${#sets.contains(persona.plataformas, 'LIVEJOY')}" class="px-1.5 py-0.5 text-[9px] font-bold bg-purple-100 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 rounded shadow-sm">LIVEJOY</span>
-                                        <span th:if="${#sets.contains(persona.plataformas, 'OLIVE')}" class="px-1.5 py-0.5 text-[9px] font-bold bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-300 rounded shadow-sm">OLIVE</span>
-                                    </div>
-                                </td>
-                                <td class="px-4 py-3 text-center whitespace-nowrap border border-slate-300 dark:border-gray-600">
-                                    <span class="px-2 py-1 bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 rounded-full text-[11px] font-bold" 
-                                          th:text="${persona.semanasCobradas + (persona.semanasCobradas == 1 ? ' semana' : ' semanas')}">1 semana</span>
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 font-bold border border-slate-300 dark:border-gray-600" 
-                                    th:text="${'$' + #numbers.formatDecimal(persona.totalAcumulado, 1, 2)}">$0.00</td>
-                                <td th:each="periodo : ${periodosOrdenados}" 
-                                     th:attr="data-period=${periodo}"
-                                     class="period-col hidden px-4 py-3 text-center whitespace-nowrap border border-slate-300 dark:border-gray-600">
-                                    <div th:if="${persona.ingresosPorPeriodo.containsKey(periodo)}" class="flex flex-col items-center gap-0.5">
-                                        <span class="text-emerald-600 dark:text-emerald-400 font-bold text-sm">✓</span>
-                                        <span class="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400" 
-                                              th:text="${'$' + #numbers.formatDecimal(persona.ingresosPorPeriodo.get(periodo), 1, 2)}">$0.00</span>
-                                    </div>
-                                    <span th:unless="${persona.ingresosPorPeriodo.containsKey(periodo)}" class="text-slate-300 dark:text-slate-600 font-bold text-xs">-</span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <!-- Barra de Paginación Consolidado -->
-                <div th:if="${not #lists.isEmpty(consolidadoRecords)}" class="px-4 py-3 bg-slate-50 dark:bg-gray-800/80 border-t border-slate-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-                    <div class="flex items-center gap-2">
-                        <span class="text-slate-500 dark:text-slate-400 font-medium">Mostrar</span>
-                        <select onchange="changePageSize('consolidado', this.value)" class="px-2 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded text-slate-700 dark:text-slate-200 font-semibold focus:ring-2 focus:ring-[#c2272d]">
-                            <option value="25">25</option>
-                            <option value="50" selected>50</option>
-                            <option value="100">100</option>
-                            <option value="all">Todos</option>
-                        </select>
-                        <span class="text-slate-500 dark:text-slate-400 font-medium">filas por página</span>
-                    </div>
-                    <div class="text-slate-500 dark:text-slate-400 font-medium">
-                        Mostrando <span id="startIdx_consolidado" class="font-bold text-slate-700 dark:text-slate-200">1</span> a <span id="endIdx_consolidado" class="font-bold text-slate-700 dark:text-slate-200">50</span> de <span id="totalCount_consolidado" class="font-bold text-slate-700 dark:text-slate-200">0</span> registros
-                    </div>
-                    <div class="flex items-center gap-1">
-                        <button type="button" onclick="goToPage('consolidado', 1)" id="btnFirst_consolidado" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">«</button>
-                        <button type="button" onclick="changePage('consolidado', -1)" id="btnPrev_consolidado" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">‹</button>
-                        <span class="px-3 py-1 bg-slate-200 dark:bg-gray-700 font-bold text-slate-800 dark:text-slate-100 rounded" id="pageNumber_consolidado">Pág 1 / 1</span>
-                        <button type="button" onclick="changePage('consolidado', 1)" id="btnNext_consolidado" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">›</button>
-                        <button type="button" onclick="goToLastPage('consolidado')" id="btnLast_consolidado" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">»</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- SALSA Tab Content -->
-        <div id="contentSalsa" class="tab-content hidden">
+        <div id="contentSalsa" class="tab-content">
             <!-- Configuración Porcentaje Salsa -->
             <div class="mb-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div class="flex flex-wrap items-center gap-2">
@@ -1359,9 +1223,10 @@
         }
 
         function getActiveTabName() {
-            if (!document.getElementById('contentConsolidado').classList.contains('hidden')) return 'consolidado';
-            if (!document.getElementById('contentSalsa').classList.contains('hidden')) return 'salsa';
-            if (!document.getElementById('contentLivejoy').classList.contains('hidden')) return 'livejoy';
+            const salsaContent = document.getElementById('contentSalsa');
+            if (salsaContent && !salsaContent.classList.contains('hidden')) return 'salsa';
+            const livejoyContent = document.getElementById('contentLivejoy');
+            if (livejoyContent && !livejoyContent.classList.contains('hidden')) return 'livejoy';
             return 'olive';
         }
 
@@ -1838,8 +1703,8 @@
         }
 
         const activeTabFlag = document.getElementById('activeTabFlag');
-        const defaultTab = activeTabFlag ? activeTabFlag.getAttribute('data-active-tab') : 'consolidado';
-        showTab(defaultTab);
+        const defaultTab = (activeTabFlag && activeTabFlag.getAttribute('data-active-tab') !== 'consolidado') ? activeTabFlag.getAttribute('data-active-tab') : 'salsa';
+        showTab(defaultTab || 'salsa');
     </script>
 </body>
 </html>
