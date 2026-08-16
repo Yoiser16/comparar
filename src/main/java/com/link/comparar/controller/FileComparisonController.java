@@ -1660,10 +1660,15 @@ public class FileComparisonController {
     }
 
     /**
-     * Limpia completamente el histórico (elimina todos los registros)
+     * Limpia completamente el histórico (elimina todos los registros), requiere contraseña de seguridad
      */
     @DeleteMapping("/historico/limpiar-todo")
-    public ResponseEntity<?> limpiarTodoHistorico() {
+    public ResponseEntity<?> limpiarTodoHistorico(@RequestBody(required = false) Map<String, String> request) {
+        String password = request != null ? request.get("password") : null;
+        if (password == null || !CONTRASEÑA_HISTORICO.equals(password.trim())) {
+            return ResponseEntity.status(401).body("Contraseña incorrecta. Se requiere la contraseña del histórico.");
+        }
+
         try {
             historicoService.limpiarHistorico();
             return ResponseEntity.ok().body("Histórico limpiado exitosamente");
