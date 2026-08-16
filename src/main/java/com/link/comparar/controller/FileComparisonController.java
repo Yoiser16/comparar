@@ -670,8 +670,8 @@ public class FileComparisonController {
             // ID <- CSV: ID
             row.createCell(0).setCellValue(record.getId() != null ? record.getId() : "");
 
-            // Nombre <- CSV: Nombre Completo
-            String nombre = getFieldValue(record, "CSV_Nombre Completo", "CSV_Nombre");
+            // Nombre <- Excel primero, luego CSV
+            String nombre = getFieldValue(record, "Excel_Nombre Completo", "Excel_Nombre", "CSV_Nombre Completo", "CSV_Nombre");
             row.createCell(1).setCellValue(nombre);
 
             // Total Coins <- CSV: Total Monedas
@@ -797,7 +797,7 @@ public class FileComparisonController {
             cellCoins.setCellStyle(currencyStyle);
 
             // Column 3: NOMBRE STREAMERS
-            String nombre = getFieldValue(record, "CSV_Nombre Completo", "CSV_Nombre", "Excel_Nombre Completo", "Excel_Nombre");
+            String nombre = getFieldValue(record, "Excel_Nombre Completo", "Excel_Nombre", "CSV_Nombre Completo", "CSV_Nombre");
             row.createCell(3).setCellValue(nombre != null ? nombre : "");
 
             // Column 4: TUTORA (Calculado)

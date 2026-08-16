@@ -181,10 +181,25 @@ public class HistoricoService {
     private String obtenerNombreCompleto(Map<String, String> data) {
         String nombre = data.get("Excel_Nombre Completo");
         if (nombre == null || nombre.isEmpty()) {
+            nombre = data.get("Excel_Nombre");
+        }
+        if (nombre == null || nombre.isEmpty()) {
+            nombre = data.get("Excel_Nombre completo");
+        }
+        if (nombre == null || nombre.isEmpty()) {
+            nombre = data.get("Excel_Streamer");
+        }
+        if (nombre == null || nombre.isEmpty()) {
             nombre = data.get("CSV_Nombre Completo");
         }
         if (nombre == null || nombre.isEmpty()) {
+            nombre = data.get("CSV_Nombre");
+        }
+        if (nombre == null || nombre.isEmpty()) {
             nombre = data.get("Nombre Completo");
+        }
+        if (nombre == null || nombre.isEmpty()) {
+            nombre = data.get("Nombre");
         }
         return nombre != null ? nombre : "Sin nombre";
     }
