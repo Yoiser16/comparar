@@ -123,6 +123,18 @@ public class FileComparisonService {
                     if (value != null && !value.trim().isEmpty()) {
                         String displayName = getDisplayName(header);
                         if (displayName != null) {
+                            String trimmedValue = value.trim();
+                            if (trimmedValue.contains(".")) {
+                                try {
+                                    double parsed = Double.parseDouble(trimmedValue.replace("$", "").replace(",", ""));
+                                    double rounded = java.math.BigDecimal.valueOf(parsed)
+                                            .setScale(2, java.math.RoundingMode.HALF_UP)
+                                            .doubleValue();
+                                    trimmedValue = String.format(Locale.US, "%.2f", rounded);
+                                } catch (Exception ignored) {
+                                }
+                            }
+
                             // Si es archivo OLIVE, solo mostrar los campos específicos de OLIVE
                             if (isOliveFile) {
                                 if (displayName.equals("Puntos Canjeables") ||
@@ -130,7 +142,7 @@ public class FileComparisonService {
                                         displayName.equals("Nivel") ||
                                         displayName.equals("Pago Agencia") ||
                                         displayName.equals("Bonus Revenue")) {
-                                    data.put(displayName, value.trim());
+                                    data.put(displayName, trimmedValue);
                                 }
                             } else {
                                 // Excluir Loyalty Credits, Bonos de Streamers y Bonus si es LIVEJOY
@@ -146,7 +158,7 @@ public class FileComparisonService {
                                     displayName.equals("Total")) {
                                     continue;
                                 }
-                                data.put(displayName, value.trim());
+                                data.put(displayName, trimmedValue);
                             }
                         }
                     }
@@ -1177,8 +1189,6 @@ public class FileComparisonService {
                             } else {
                                 data.put("Bonus Top 100", "0");
                             }
-                            
-                            i += 12; // saltar los campos procesados de esta fila
                         }
                     }
                     

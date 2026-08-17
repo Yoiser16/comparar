@@ -526,6 +526,11 @@ public class FileComparisonController {
             return baos.toByteArray();
         }
 
+        DataFormat dataFormat = workbook.createDataFormat();
+
+        CellStyle numberStyle = workbook.createCellStyle();
+        numberStyle.setDataFormat(dataFormat.getFormat("#,##0.00"));
+
         // Estilo para encabezados
         CellStyle headerStyle = workbook.createCellStyle();
         Font headerFont = workbook.createFont();
@@ -566,7 +571,14 @@ public class FileComparisonController {
             
             // Monto Dólares / Ingresos (del CSV)
             String ingresos = getFieldValue(record, "CSV_Ingresos", "CSV_Monto Dólares", "CSV_Monto Dolares");
-            row.createCell(4).setCellValue(ingresos);
+            Double ingresosNum = parseOptionalDouble(ingresos);
+            org.apache.poi.ss.usermodel.Cell ingresosCell = row.createCell(4);
+            if (ingresosNum != null) {
+                ingresosCell.setCellValue(roundTwoDecimals(ingresosNum));
+                ingresosCell.setCellStyle(numberStyle);
+            } else {
+                ingresosCell.setCellValue(ingresos != null ? ingresos : "");
+            }
             
             // Nombre Streamers (del Excel)
             String nombreCompleto = getFieldValue(record, "Excel_Nombre Completo", "Excel_Nombre");
@@ -575,15 +587,21 @@ public class FileComparisonController {
             // Tutora (Calculado: Ingresos * porcentaje1 * porcentaje2)
             double tutoraValue = 0.0;
             try {
-                if (ingresos != null && !ingresos.trim().isEmpty()) {
-                    double ingresosNum = Double.parseDouble(ingresos.replace(",", ""));
+                if (ingresosNum != null) {
                     tutoraValue = ingresosNum * (porcentaje1 / 100.0) * (porcentaje2 / 100.0);
+                } else if (ingresos != null && !ingresos.trim().isEmpty()) {
+                    double parsedVal = Double.parseDouble(ingresos.replace(",", ""));
+                    tutoraValue = parsedVal * (porcentaje1 / 100.0) * (porcentaje2 / 100.0);
                 }
             } catch (NumberFormatException e) {
                 // Si no se puede parsear, dejar en 0
             }
-            row.createCell(6).setCellValue(String.format("%.2f", tutoraValue));
-            totalTutora += tutoraValue;
+
+            double tutoraRounded = roundTwoDecimals(tutoraValue);
+            org.apache.poi.ss.usermodel.Cell tutoraCell = row.createCell(6);
+            tutoraCell.setCellValue(tutoraRounded);
+            tutoraCell.setCellStyle(numberStyle);
+            totalTutora += tutoraRounded;
         }
 
         // Agregar fila de TOTAL
@@ -594,14 +612,18 @@ public class FileComparisonController {
         totalStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
         totalStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 
+        CellStyle totalNumberStyle = workbook.createCellStyle();
+        totalNumberStyle.cloneStyleFrom(totalStyle);
+        totalNumberStyle.setDataFormat(dataFormat.getFormat("#,##0.00"));
+
         Row totalRow = sheet.createRow(rowIndex);
         org.apache.poi.ss.usermodel.Cell totalLabelCell = totalRow.createCell(0);
         totalLabelCell.setCellValue("TOTAL");
         totalLabelCell.setCellStyle(totalStyle);
         
         org.apache.poi.ss.usermodel.Cell totalValueCell = totalRow.createCell(6);
-        totalValueCell.setCellValue(String.format("%.2f", totalTutora));
-        totalValueCell.setCellStyle(totalStyle);
+        totalValueCell.setCellValue(roundTwoDecimals(totalTutora));
+        totalValueCell.setCellStyle(totalNumberStyle);
 
         // Auto-ajustar columnas
         for (int i = 0; i < headers.length; i++) {
@@ -631,6 +653,11 @@ public class FileComparisonController {
             workbook.close();
             return baos.toByteArray();
         }
+
+        DataFormat dataFormat = workbook.createDataFormat();
+
+        CellStyle numberStyle = workbook.createCellStyle();
+        numberStyle.setDataFormat(dataFormat.getFormat("#,##0.00"));
 
         CellStyle headerStyle = workbook.createCellStyle();
         Font headerFont = workbook.createFont();
@@ -685,8 +712,11 @@ public class FileComparisonController {
             // Tutora <- Cálculo: (Bono de Agencia - descuento%) (ya incluye el bono top)
             double tutora = bonoAgenciaValue * porcentajeRetener;
 
-            row.createCell(3).setCellValue(String.format("%.2f", tutora));
-            totalTutora += tutora;
+            double tutoraRounded = roundTwoDecimals(tutora);
+            org.apache.poi.ss.usermodel.Cell tutoraCell = row.createCell(3);
+            tutoraCell.setCellValue(tutoraRounded);
+            tutoraCell.setCellStyle(numberStyle);
+            totalTutora += tutoraRounded;
         }
 
         // Agregar fila de TOTAL
@@ -697,14 +727,18 @@ public class FileComparisonController {
         totalStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
         totalStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 
+        CellStyle totalNumberStyle = workbook.createCellStyle();
+        totalNumberStyle.cloneStyleFrom(totalStyle);
+        totalNumberStyle.setDataFormat(dataFormat.getFormat("#,##0.00"));
+
         Row totalRow = sheet.createRow(rowIndex);
         org.apache.poi.ss.usermodel.Cell totalLabelCell = totalRow.createCell(0);
         totalLabelCell.setCellValue("TOTAL");
         totalLabelCell.setCellStyle(totalStyle);
         
         org.apache.poi.ss.usermodel.Cell totalValueCell = totalRow.createCell(3);
-        totalValueCell.setCellValue(String.format("%.2f", totalTutora));
-        totalValueCell.setCellStyle(totalStyle);
+        totalValueCell.setCellValue(roundTwoDecimals(totalTutora));
+        totalValueCell.setCellStyle(totalNumberStyle);
 
         for (int i = 0; i < headers.length; i++) {
             sheet.autoSizeColumn(i);
@@ -986,7 +1020,7 @@ public class FileComparisonController {
                 data.put("totalCoins", registro.getTotalMonedas() != null ? registro.getTotalMonedas() : 0.0);
                 double bonoAgencia = registro.getBonoAgencia() != null ? registro.getBonoAgencia() : 0.0;
                 double appliedDescuento = (registro.getPorcentajeDescuento() != null) ? registro.getPorcentajeDescuento() : descuento;
-                double tutora = bonoAgencia * (1.0 - appliedDescuento / 100.0);
+                double tutora = roundTwoDecimals(bonoAgencia * (1.0 - appliedDescuento / 100.0));
                 data.put("tutora", tutora);
             } else if ("LIVEJOY".equals(rSheet)) {
                 data.put("usuario", registro.getNombreCompleto());
@@ -995,7 +1029,7 @@ public class FileComparisonController {
                 double ingresos = registro.getMonedas() != null ? registro.getMonedas() : 0.0;
                 double appliedP1 = (registro.getPorcentaje1() != null) ? registro.getPorcentaje1() : p1;
                 double appliedP2 = (registro.getPorcentaje2() != null) ? registro.getPorcentaje2() : p2;
-                double tutora = ingresos * (appliedP1 / 100.0) * (appliedP2 / 100.0);
+                double tutora = roundTwoDecimals(ingresos * (appliedP1 / 100.0) * (appliedP2 / 100.0));
                 data.put("tutora", tutora);
             } else if ("OLIVE".equals(rSheet)) {
                 data.put("monedas", registro.getMonedas() != null ? registro.getMonedas() : 0.0);
@@ -1005,7 +1039,7 @@ public class FileComparisonController {
                 double br = registro.getBonusRevenue() != null ? registro.getBonusRevenue() : 0.0;
                 double p2Val = registro.getPorcentaje2() != null ? registro.getPorcentaje2() : oliveP2;
                 double comisionBase = (registro.getMonedas() != null ? registro.getMonedas() : 0.0) * 0.10;
-                double pagoTutora = (comisionBase * (p2Val / 100.0)) + (br / 3.0);
+                double pagoTutora = roundTwoDecimals((comisionBase * (p2Val / 100.0)) + (br / 3.0));
                 data.put("pagoAgencia", ap);
                 data.put("bonusRevenue", br);
                 data.put("pagoTutora", pagoTutora);
@@ -1508,7 +1542,10 @@ public class FileComparisonController {
     }
 
     private double roundTwoDecimals(double value) {
-        return Math.round(value * 100.0d) / 100.0d;
+        if (Double.isNaN(value) || Double.isInfinite(value)) return 0.0;
+        return java.math.BigDecimal.valueOf(value)
+                .setScale(2, java.math.RoundingMode.HALF_UP)
+                .doubleValue();
     }
 
     /**
@@ -1749,7 +1786,7 @@ public class FileComparisonController {
                 double bonoAgencia = registro.getBonoAgencia() != null ? registro.getBonoAgencia() : 0.0;
                 double bonusTop100 = registro.getBonusTop100() != null ? registro.getBonusTop100() : 0.0;
                 double appliedDescuento = (registro.getPorcentajeDescuento() != null) ? registro.getPorcentajeDescuento() : descuento;
-                double tutora = bonoAgencia * (1.0 - appliedDescuento/100.0);
+                double tutora = roundTwoDecimals(bonoAgencia * (1.0 - appliedDescuento/100.0));
                 data.put("tutora", tutora);
                 
                 salsaRecords.add(data);
@@ -1769,7 +1806,7 @@ public class FileComparisonController {
                 double ingresos = registro.getMonedas() != null ? registro.getMonedas() : 0.0;
                 double appliedP1 = (registro.getPorcentaje1() != null) ? registro.getPorcentaje1() : p1;
                 double appliedP2 = (registro.getPorcentaje2() != null) ? registro.getPorcentaje2() : p2;
-                double tutora = ingresos * (appliedP1/100.0) * (appliedP2/100.0);
+                double tutora = roundTwoDecimals(ingresos * (appliedP1/100.0) * (appliedP2/100.0));
                 data.put("tutora", tutora);
                 
                 livejoyRecords.add(data);
@@ -1790,8 +1827,8 @@ public class FileComparisonController {
                 double p2Val = registro.getPorcentaje2() != null ? registro.getPorcentaje2() : oliveP2;
 
                 double comisionBase = (registro.getMonedas() != null ? registro.getMonedas() : 0.0) * 0.10;
-                double pagoChica = comisionBase * (p1Val / 100.0);
-                double pagoTutora = (comisionBase * (p2Val / 100.0)) + (br / 3.0);
+                double pagoChica = roundTwoDecimals(comisionBase * (p1Val / 100.0));
+                double pagoTutora = roundTwoDecimals((comisionBase * (p2Val / 100.0)) + (br / 3.0));
 
                 data.put("pagoAgencia", ap);
                 data.put("bonusRevenue", br);
