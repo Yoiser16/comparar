@@ -1518,6 +1518,7 @@
 
         // Consolidated filter logic
         function filterConsolidado() {
+            if (!document.getElementById('filterCobro')) return;
             const cobroVal = document.getElementById('filterCobro').value;
             const plataformaVal = document.getElementById('filterPlataforma').value;
             const periodoVal = document.getElementById('filterPeriodoCobro').value;
@@ -1786,11 +1787,15 @@
     </script>
     <span id="activeTabFlag" th:attr="data-active-tab=${activeTab}" class="hidden"></span>
     <script>
-        // Add consolidado filter listeners
-        document.getElementById('filterCobro').addEventListener('change', filterConsolidado);
-        document.getElementById('filterPlataforma').addEventListener('change', filterConsolidado);
-        document.getElementById('filterPeriodoCobro').addEventListener('change', filterConsolidado);
-        document.getElementById('consolidadoSearchInput').addEventListener('input', filterConsolidado);
+        // Add consolidado filter listeners (la pestaña Consolidado puede no existir)
+        function bindConsolidadoFilter(id, evt) {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener(evt, filterConsolidado);
+        }
+        bindConsolidadoFilter('filterCobro', 'change');
+        bindConsolidadoFilter('filterPlataforma', 'change');
+        bindConsolidadoFilter('filterPeriodoCobro', 'change');
+        bindConsolidadoFilter('consolidadoSearchInput', 'input');
 
         updatePeriodButtons('salsa', 'all');
         updatePeriodButtons('livejoy', 'all');
