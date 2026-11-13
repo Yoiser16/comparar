@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Histórico de Ingresos</title>
+    <link rel="icon" type="image/png" th:href="@{/img/logo.png}" href="/img/logo.png">
     <script th:src="@{/js/tailwind.min.js}" src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <script>
@@ -270,9 +271,21 @@
             <div th:unless="${compararActive && activeTab == 'salsa'}" class="mb-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 p-3">
                 <div class="flex items-center gap-3 flex-wrap">
                     <span class="text-xs font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wide">Períodos SALSA</span>
-                    <div class="flex gap-2 flex-wrap" id="periodNavbarSalsa">
-                        <button type="button" data-tab="salsa" data-period="all" onclick="selectPeriod('salsa', 'all')" class="period-button-salsa px-3 py-1.5 rounded-lg font-bold text-xs transition-colors bg-amber-600 text-white">Todos</button>
-                        <button type="button" th:each="periodo : ${periodosSalsa}" th:attr="data-tab='salsa',data-period=${periodo}" th:text="${periodo}" onclick="selectPeriodFromButton(this)" class="period-button-salsa px-3 py-1.5 rounded-lg font-bold text-xs transition-colors bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-600">Periodo</button>
+                    <div class="flex gap-2 flex-wrap items-center" id="periodNavbarSalsa">
+                        <button type="button" data-tab="salsa" data-period="all" onclick="selectPeriodFromButton(this)" class="period-button-salsa px-3 py-1.5 rounded-lg font-bold text-xs transition-colors bg-amber-600 text-white">Todos</button>
+                        <button type="button" th:each="periodo, it : ${periodosSalsa}" th:if="${it.index < 10}" th:attr="data-tab='salsa',data-period=${periodo}" th:text="${periodo}" onclick="selectPeriodFromButton(this)" class="period-button-salsa px-3 py-1.5 rounded-lg font-bold text-xs transition-colors bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-600">Periodo</button>
+                        <div th:if="${#lists.size(periodosSalsa) > 10}" class="relative" data-more-wrapper="salsa">
+                            <button type="button" id="periodMoreBtnSalsa" onclick="togglePeriodMore('salsa', event)" aria-haspopup="true" aria-expanded="false" class="period-more-btn px-3 py-1.5 rounded-lg font-bold text-xs transition-colors border border-dashed border-slate-300 dark:border-gray-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-gray-700 inline-flex items-center gap-1">
+                                <span class="period-more-label" th:text="'Ver más (' + ${#lists.size(periodosSalsa) - 10} + ')'">Ver más</span>
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                            <div id="periodMorePanelSalsa" class="period-more-panel hidden absolute left-0 top-full mt-2 z-30 w-72 max-w-[90vw] bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg shadow-lg p-2">
+                                <p class="px-1 pb-2 text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Períodos anteriores</p>
+                                <div class="flex flex-col gap-1 max-h-64 overflow-y-auto">
+                                    <button type="button" th:each="periodo, it : ${periodosSalsa}" th:if="${it.index >= 10}" th:attr="data-tab='salsa',data-period=${periodo},data-older='true'" th:text="${periodo}" onclick="selectPeriodFromButton(this)" class="period-button-salsa px-3 py-1.5 rounded-lg font-bold text-xs transition-colors text-left bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-600">Periodo</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -487,9 +500,21 @@
             <div th:unless="${compararActive && activeTab == 'livejoy'}" class="mb-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 p-3">
                 <div class="flex items-center gap-3 flex-wrap">
                     <span class="text-xs font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wide">Períodos LIVEJOY</span>
-                    <div class="flex gap-2 flex-wrap" id="periodNavbarLivejoy">
-                        <button type="button" data-tab="livejoy" data-period="all" onclick="selectPeriod('livejoy', 'all')" class="period-button-livejoy px-3 py-1.5 rounded-lg font-bold text-xs transition-colors bg-purple-600 text-white">Todos</button>
-                        <button type="button" th:each="periodo : ${periodosLivejoy}" th:attr="data-tab='livejoy',data-period=${periodo}" th:text="${periodo}" onclick="selectPeriodFromButton(this)" class="period-button-livejoy px-3 py-1.5 rounded-lg font-bold text-xs transition-colors bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-600">Periodo</button>
+                    <div class="flex gap-2 flex-wrap items-center" id="periodNavbarLivejoy">
+                        <button type="button" data-tab="livejoy" data-period="all" onclick="selectPeriodFromButton(this)" class="period-button-livejoy px-3 py-1.5 rounded-lg font-bold text-xs transition-colors bg-purple-600 text-white">Todos</button>
+                        <button type="button" th:each="periodo, it : ${periodosLivejoy}" th:if="${it.index < 10}" th:attr="data-tab='livejoy',data-period=${periodo}" th:text="${periodo}" onclick="selectPeriodFromButton(this)" class="period-button-livejoy px-3 py-1.5 rounded-lg font-bold text-xs transition-colors bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-600">Periodo</button>
+                        <div th:if="${#lists.size(periodosLivejoy) > 10}" class="relative" data-more-wrapper="livejoy">
+                            <button type="button" id="periodMoreBtnLivejoy" onclick="togglePeriodMore('livejoy', event)" aria-haspopup="true" aria-expanded="false" class="period-more-btn px-3 py-1.5 rounded-lg font-bold text-xs transition-colors border border-dashed border-slate-300 dark:border-gray-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-gray-700 inline-flex items-center gap-1">
+                                <span class="period-more-label" th:text="'Ver más (' + ${#lists.size(periodosLivejoy) - 10} + ')'">Ver más</span>
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                            <div id="periodMorePanelLivejoy" class="period-more-panel hidden absolute left-0 top-full mt-2 z-30 w-72 max-w-[90vw] bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg shadow-lg p-2">
+                                <p class="px-1 pb-2 text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Períodos anteriores</p>
+                                <div class="flex flex-col gap-1 max-h-64 overflow-y-auto">
+                                    <button type="button" th:each="periodo, it : ${periodosLivejoy}" th:if="${it.index >= 10}" th:attr="data-tab='livejoy',data-period=${periodo},data-older='true'" th:text="${periodo}" onclick="selectPeriodFromButton(this)" class="period-button-livejoy px-3 py-1.5 rounded-lg font-bold text-xs transition-colors text-left bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-600">Periodo</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -706,9 +731,21 @@
             <div th:unless="${compararActive && activeTab == 'olive'}" class="mb-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 p-3">
                 <div class="flex items-center gap-3 flex-wrap">
                     <span class="text-xs font-bold text-green-700 dark:text-green-300 uppercase tracking-wide">Períodos OLIVE</span>
-                    <div class="flex gap-2 flex-wrap" id="periodNavbarOlive">
-                        <button type="button" data-tab="olive" data-period="all" onclick="selectPeriod('olive', 'all')" class="period-button-olive px-3 py-1.5 rounded-lg font-bold text-xs transition-colors bg-green-600 text-white">Todos</button>
-                        <button type="button" th:each="periodo : ${periodosOlive}" th:attr="data-tab='olive',data-period=${periodo}" th:text="${periodo}" onclick="selectPeriodFromButton(this)" class="period-button-olive px-3 py-1.5 rounded-lg font-bold text-xs transition-colors bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-600">Periodo</button>
+                    <div class="flex gap-2 flex-wrap items-center" id="periodNavbarOlive">
+                        <button type="button" data-tab="olive" data-period="all" onclick="selectPeriodFromButton(this)" class="period-button-olive px-3 py-1.5 rounded-lg font-bold text-xs transition-colors bg-green-600 text-white">Todos</button>
+                        <button type="button" th:each="periodo, it : ${periodosOlive}" th:if="${it.index < 10}" th:attr="data-tab='olive',data-period=${periodo}" th:text="${periodo}" onclick="selectPeriodFromButton(this)" class="period-button-olive px-3 py-1.5 rounded-lg font-bold text-xs transition-colors bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-600">Periodo</button>
+                        <div th:if="${#lists.size(periodosOlive) > 10}" class="relative" data-more-wrapper="olive">
+                            <button type="button" id="periodMoreBtnOlive" onclick="togglePeriodMore('olive', event)" aria-haspopup="true" aria-expanded="false" class="period-more-btn px-3 py-1.5 rounded-lg font-bold text-xs transition-colors border border-dashed border-slate-300 dark:border-gray-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-gray-700 inline-flex items-center gap-1">
+                                <span class="period-more-label" th:text="'Ver más (' + ${#lists.size(periodosOlive) - 10} + ')'">Ver más</span>
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                            <div id="periodMorePanelOlive" class="period-more-panel hidden absolute left-0 top-full mt-2 z-30 w-72 max-w-[90vw] bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg shadow-lg p-2">
+                                <p class="px-1 pb-2 text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Períodos anteriores</p>
+                                <div class="flex flex-col gap-1 max-h-64 overflow-y-auto">
+                                    <button type="button" th:each="periodo, it : ${periodosOlive}" th:if="${it.index >= 10}" th:attr="data-tab='olive',data-period=${periodo},data-older='true'" th:text="${periodo}" onclick="selectPeriodFromButton(this)" class="period-button-olive px-3 py-1.5 rounded-lg font-bold text-xs transition-colors text-left bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-600">Periodo</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1132,25 +1169,94 @@
                 return;
             }
             selectPeriod(tabName, period);
+            closePeriodMore(tabName);
+            scrollToTable(tabName);
         }
 
+        function capitalizeTab(tabName) {
+            return tabName.charAt(0).toUpperCase() + tabName.slice(1);
+        }
+
+        function togglePeriodMore(tabName, event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            const panel = document.getElementById(`periodMorePanel${capitalizeTab(tabName)}`);
+            const btn = document.getElementById(`periodMoreBtn${capitalizeTab(tabName)}`);
+            if (!panel) {
+                return;
+            }
+            const willOpen = panel.classList.contains('hidden');
+            ['salsa', 'livejoy', 'olive'].forEach(closePeriodMore);
+            if (willOpen) {
+                panel.classList.remove('hidden');
+                if (btn) btn.setAttribute('aria-expanded', 'true');
+            }
+        }
+
+        function closePeriodMore(tabName) {
+            const panel = document.getElementById(`periodMorePanel${capitalizeTab(tabName)}`);
+            const btn = document.getElementById(`periodMoreBtn${capitalizeTab(tabName)}`);
+            if (panel) panel.classList.add('hidden');
+            if (btn) btn.setAttribute('aria-expanded', 'false');
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('[data-more-wrapper]')) {
+                ['salsa', 'livejoy', 'olive'].forEach(closePeriodMore);
+            }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                ['salsa', 'livejoy', 'olive'].forEach(closePeriodMore);
+            }
+        });
+
+        function scrollToTable(tabName) {
+            const firstRow = document.querySelector(`.data-row-${tabName}`);
+            const table = firstRow ? firstRow.closest('table') : null;
+            if (!table) {
+                return;
+            }
+            const target = table.closest('.rounded-lg') || table;
+            target.style.scrollMarginTop = '12px';
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        const periodActiveClasses = {
+            salsa: ['bg-amber-600', 'text-white'],
+            livejoy: ['bg-purple-600', 'text-white'],
+            olive: ['bg-green-600', 'text-white']
+        };
+        const periodIdleClasses = ['bg-slate-100', 'dark:bg-gray-700', 'text-slate-700', 'dark:text-slate-300', 'hover:bg-slate-200', 'dark:hover:bg-gray-600'];
+
         function updatePeriodButtons(tabName, selectedPeriod) {
+            const active = periodActiveClasses[tabName] || periodActiveClasses.olive;
+            let olderSelected = null;
             document.querySelectorAll(`.period-button-${tabName}`).forEach(button => {
-                const period = button.getAttribute('data-period');
-                if (period === selectedPeriod) {
-                    button.classList.remove('bg-slate-100', 'dark:bg-gray-700', 'text-slate-700', 'dark:text-slate-300');
-                    if (tabName === 'salsa') {
-                        button.classList.add('bg-amber-600', 'text-white');
-                    } else if (tabName === 'livejoy') {
-                        button.classList.add('bg-purple-600', 'text-white');
-                    } else {
-                        button.classList.add('bg-green-600', 'text-white');
-                    }
-                } else {
-                    button.classList.remove('bg-amber-600', 'bg-purple-600', 'bg-green-600', 'text-white');
-                    button.classList.add('bg-slate-100', 'dark:bg-gray-700', 'text-slate-700', 'dark:text-slate-300');
+                const isSelected = button.getAttribute('data-period') === selectedPeriod;
+                button.classList.remove(...active, ...periodIdleClasses);
+                button.classList.add(...(isSelected ? active : periodIdleClasses));
+                if (isSelected && button.getAttribute('data-older') === 'true') {
+                    olderSelected = selectedPeriod;
                 }
             });
+
+            // Si el período elegido está dentro de "Ver más", ese botón lo muestra resaltado
+            const moreBtn = document.getElementById(`periodMoreBtn${capitalizeTab(tabName)}`);
+            if (moreBtn) {
+                const label = moreBtn.querySelector('.period-more-label');
+                if (!moreBtn.dataset.defaultLabel && label) {
+                    moreBtn.dataset.defaultLabel = label.textContent;
+                }
+                moreBtn.classList.remove(...active, 'border-transparent');
+                if (olderSelected) {
+                    moreBtn.classList.add(...active, 'border-transparent');
+                    if (label) label.textContent = olderSelected;
+                } else if (label) {
+                    label.textContent = moreBtn.dataset.defaultLabel;
+                }
+            }
         }
 
         function updateRowVisibility(row, tabName) {
