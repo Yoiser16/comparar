@@ -348,7 +348,7 @@
                                     No hay registros de SALSA
                                 </td>
                             </tr>
-                            <tr th:each="registro : ${salsaRecords}" class="hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors data-row-salsa" th:attr="data-period=${registro.periodo},data-tutora=${registro.tutora}">
+                            <tr th:each="registro, rowStat : ${salsaRecords}" th:style="${rowStat.index >= 50} ? 'display:none' : null" class="hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors data-row-salsa" th:attr="data-period=${registro.periodo},data-tutora=${registro.tutora}">
                                 <td class="px-4 py-3 whitespace-nowrap text-sm font-mono font-bold text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-gray-600">
                                     <a th:href="@{/historico/usuario/{id}(id=${registro.id})}" class="text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:underline" th:text="${registro.id}">ID</a>
                                 </td>
@@ -383,12 +383,12 @@
                         <span class="text-slate-500 dark:text-slate-400 font-medium">filas por página</span>
                     </div>
                     <div class="text-slate-500 dark:text-slate-400 font-medium">
-                        Mostrando <span id="startIdx_salsa" class="font-bold text-slate-700 dark:text-slate-200">1</span> a <span id="endIdx_salsa" class="font-bold text-slate-700 dark:text-slate-200">50</span> de <span id="totalCount_salsa" class="font-bold text-slate-700 dark:text-slate-200">0</span> registros
+                        Mostrando <span id="startIdx_salsa" class="font-bold text-slate-700 dark:text-slate-200" th:text="${#lists.isEmpty(salsaRecords) ? 0 : 1}">1</span> a <span id="endIdx_salsa" class="font-bold text-slate-700 dark:text-slate-200" th:text="${#lists.size(salsaRecords) < 50 ? #lists.size(salsaRecords) : 50}">50</span> de <span id="totalCount_salsa" class="font-bold text-slate-700 dark:text-slate-200" th:text="${#lists.size(salsaRecords)}">0</span> registros
                     </div>
                     <div class="flex items-center gap-1">
                         <button type="button" onclick="goToPage('salsa', 1)" id="btnFirst_salsa" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">«</button>
                         <button type="button" onclick="changePage('salsa', -1)" id="btnPrev_salsa" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">‹</button>
-                        <span class="px-3 py-1 bg-slate-200 dark:bg-gray-700 font-bold text-slate-800 dark:text-slate-100 rounded" id="pageNumber_salsa">Pág 1 / 1</span>
+                        <span class="px-3 py-1 bg-slate-200 dark:bg-gray-700 font-bold text-slate-800 dark:text-slate-100 rounded" id="pageNumber_salsa" th:text="'Pág 1 / ' + ${#lists.isEmpty(salsaRecords) ? 1 : (#lists.size(salsaRecords) + 49) / 50}">Pág 1 / 1</span>
                         <button type="button" onclick="changePage('salsa', 1)" id="btnNext_salsa" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">›</button>
                         <button type="button" onclick="goToLastPage('salsa')" id="btnLast_salsa" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">»</button>
                     </div>
@@ -579,7 +579,7 @@
                                     No hay registros de LIVEJOY
                                 </td>
                             </tr>
-                            <tr th:each="registro : ${livejoyRecords}" class="hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-colors data-row-livejoy" th:attr="data-period=${registro.periodo},data-tutora=${registro.tutora}">
+                            <tr th:each="registro, rowStat : ${livejoyRecords}" th:style="${rowStat.index >= 50} ? 'display:none' : null" class="hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-colors data-row-livejoy" th:attr="data-period=${registro.periodo},data-tutora=${registro.tutora}">
                                 <td class="px-4 py-3 whitespace-nowrap text-sm font-mono font-bold text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-gray-600">
                                     <a th:href="@{/historico/usuario/{id}(id=${registro.id})}" class="text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:underline" th:text="${registro.id}">ID</a>
                                 </td>
@@ -617,12 +617,12 @@
                         <span class="text-slate-500 dark:text-slate-400 font-medium">filas por página</span>
                     </div>
                     <div class="text-slate-500 dark:text-slate-400 font-medium">
-                        Mostrando <span id="startIdx_livejoy" class="font-bold text-slate-700 dark:text-slate-200">1</span> a <span id="endIdx_livejoy" class="font-bold text-slate-700 dark:text-slate-200">50</span> de <span id="totalCount_livejoy" class="font-bold text-slate-700 dark:text-slate-200">0</span> registros
+                        Mostrando <span id="startIdx_livejoy" class="font-bold text-slate-700 dark:text-slate-200" th:text="${#lists.isEmpty(livejoyRecords) ? 0 : 1}">1</span> a <span id="endIdx_livejoy" class="font-bold text-slate-700 dark:text-slate-200" th:text="${#lists.size(livejoyRecords) < 50 ? #lists.size(livejoyRecords) : 50}">50</span> de <span id="totalCount_livejoy" class="font-bold text-slate-700 dark:text-slate-200" th:text="${#lists.size(livejoyRecords)}">0</span> registros
                     </div>
                     <div class="flex items-center gap-1">
                         <button type="button" onclick="goToPage('livejoy', 1)" id="btnFirst_livejoy" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">«</button>
                         <button type="button" onclick="changePage('livejoy', -1)" id="btnPrev_livejoy" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">‹</button>
-                        <span class="px-3 py-1 bg-slate-200 dark:bg-gray-700 font-bold text-slate-800 dark:text-slate-100 rounded" id="pageNumber_livejoy">Pág 1 / 1</span>
+                        <span class="px-3 py-1 bg-slate-200 dark:bg-gray-700 font-bold text-slate-800 dark:text-slate-100 rounded" id="pageNumber_livejoy" th:text="'Pág 1 / ' + ${#lists.isEmpty(livejoyRecords) ? 1 : (#lists.size(livejoyRecords) + 49) / 50}">Pág 1 / 1</span>
                         <button type="button" onclick="changePage('livejoy', 1)" id="btnNext_livejoy" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">›</button>
                         <button type="button" onclick="goToLastPage('livejoy')" id="btnLast_livejoy" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">»</button>
                     </div>
@@ -811,7 +811,7 @@
                                     No hay registros de OLIVE
                                 </td>
                             </tr>
-                            <tr th:each="registro : ${oliveRecords}" class="hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors data-row-olive" 
+                            <tr th:each="registro, rowStat : ${oliveRecords}" th:style="${rowStat.index >= 50} ? 'display:none' : null" class="hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors data-row-olive" 
                                 th:attr="data-period=${registro.periodo},data-monedas=${registro.monedas},data-recompensa=${registro.recompensa},data-pagoagencia=${registro.pagoAgencia},data-bonusrevenue=${registro.bonusRevenue},data-pagotutora=${registro.pagoTutora},data-tutora=${registro.pagoTutora}">
                                 <td class="px-4 py-3 whitespace-nowrap text-sm font-mono font-bold text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-gray-600">
                                     <a th:href="@{/historico/usuario/{id}(id=${registro.id})}" class="text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:underline" th:text="${registro.id}">ID</a>
@@ -855,12 +855,12 @@
                         <span class="text-slate-500 dark:text-slate-400 font-medium">filas por página</span>
                     </div>
                     <div class="text-slate-500 dark:text-slate-400 font-medium">
-                        Mostrando <span id="startIdx_olive" class="font-bold text-slate-700 dark:text-slate-200">1</span> a <span id="endIdx_olive" class="font-bold text-slate-700 dark:text-slate-200">50</span> de <span id="totalCount_olive" class="font-bold text-slate-700 dark:text-slate-200">0</span> registros
+                        Mostrando <span id="startIdx_olive" class="font-bold text-slate-700 dark:text-slate-200" th:text="${#lists.isEmpty(oliveRecords) ? 0 : 1}">1</span> a <span id="endIdx_olive" class="font-bold text-slate-700 dark:text-slate-200" th:text="${#lists.size(oliveRecords) < 50 ? #lists.size(oliveRecords) : 50}">50</span> de <span id="totalCount_olive" class="font-bold text-slate-700 dark:text-slate-200" th:text="${#lists.size(oliveRecords)}">0</span> registros
                     </div>
                     <div class="flex items-center gap-1">
                         <button type="button" onclick="goToPage('olive', 1)" id="btnFirst_olive" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">«</button>
                         <button type="button" onclick="changePage('olive', -1)" id="btnPrev_olive" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">‹</button>
-                        <span class="px-3 py-1 bg-slate-200 dark:bg-gray-700 font-bold text-slate-800 dark:text-slate-100 rounded" id="pageNumber_olive">Pág 1 / 1</span>
+                        <span class="px-3 py-1 bg-slate-200 dark:bg-gray-700 font-bold text-slate-800 dark:text-slate-100 rounded" id="pageNumber_olive" th:text="'Pág 1 / ' + ${#lists.isEmpty(oliveRecords) ? 1 : (#lists.size(oliveRecords) + 49) / 50}">Pág 1 / 1</span>
                         <button type="button" onclick="changePage('olive', 1)" id="btnNext_olive" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">›</button>
                         <button type="button" onclick="goToLastPage('olive')" id="btnLast_olive" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">»</button>
                     </div>
