@@ -237,13 +237,13 @@
         <div class="mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700">
             <nav class="flex gap-1 p-2">
                 <button onclick="showTab('salsa')" id="tabSalsa" class="tab-button flex-1 px-4 py-3 rounded-lg font-bold text-sm transition-colors bg-amber-600 text-white">
-                    SALSA (<span th:text="${#lists.size(salsaRecords)}">0</span>)
+                    SALSA (<span th:text="${salsaCount}">0</span>)
                 </button>
                 <button onclick="showTab('livejoy')" id="tabLivejoy" class="tab-button flex-1 px-4 py-3 rounded-lg font-bold text-sm transition-colors bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-600">
-                    LIVEJOY (<span th:text="${#lists.size(livejoyRecords)}">0</span>)
+                    LIVEJOY (<span th:text="${livejoyCount}">0</span>)
                 </button>
                 <button onclick="showTab('olive')" id="tabOlive" class="tab-button flex-1 px-4 py-3 rounded-lg font-bold text-sm transition-colors bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-600">
-                    OLIVE (<span th:text="${#lists.size(oliveRecords)}">0</span>)
+                    OLIVE (<span th:text="${oliveCount}">0</span>)
                 </button>
             </nav>
         </div>
@@ -342,13 +342,13 @@
                                 <th class="px-4 py-3 text-left text-xs font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wider border border-amber-200 dark:border-amber-800">Fecha Registro</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white dark:bg-gray-800">
+                        <tbody id="tbody-salsa" th:fragment="filas-salsa" class="bg-white dark:bg-gray-800">
                             <tr th:if="${#lists.isEmpty(salsaRecords)}">
                                 <td colspan="7" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400 italic border border-slate-300 dark:border-gray-600">
                                     No hay registros de SALSA
                                 </td>
                             </tr>
-                            <tr th:each="registro, rowStat : ${salsaRecords}" th:style="${rowStat.index >= 50} ? 'display:none' : null" class="hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors data-row-salsa" th:attr="data-period=${registro.periodo},data-tutora=${registro.tutora}">
+                            <tr th:each="registro : ${salsaRecords}" class="hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors data-row-salsa" th:attr="data-period=${registro.periodo},data-tutora=${registro.tutora}">
                                 <td class="px-4 py-3 whitespace-nowrap text-sm font-mono font-bold text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-gray-600">
                                     <a th:href="@{/historico/usuario/{id}(id=${registro.id})}" class="text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:underline" th:text="${registro.id}">ID</a>
                                 </td>
@@ -371,7 +371,7 @@
                     </table>
                 </div>
                 <!-- Barra de Paginación SALSA -->
-                <div th:if="${not #lists.isEmpty(salsaRecords)}" class="px-4 py-3 bg-slate-50 dark:bg-gray-800/80 border-t border-slate-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <div th:if="${salsaCount > 0}" class="px-4 py-3 bg-slate-50 dark:bg-gray-800/80 border-t border-slate-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
                     <div class="flex items-center gap-2">
                         <span class="text-slate-500 dark:text-slate-400 font-medium">Mostrar</span>
                         <select onchange="changePageSize('salsa', this.value)" class="px-2 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded text-slate-700 dark:text-slate-200 font-semibold focus:ring-2 focus:ring-amber-500">
@@ -383,12 +383,12 @@
                         <span class="text-slate-500 dark:text-slate-400 font-medium">filas por página</span>
                     </div>
                     <div class="text-slate-500 dark:text-slate-400 font-medium">
-                        Mostrando <span id="startIdx_salsa" class="font-bold text-slate-700 dark:text-slate-200" th:text="${#lists.isEmpty(salsaRecords) ? 0 : 1}">1</span> a <span id="endIdx_salsa" class="font-bold text-slate-700 dark:text-slate-200" th:text="${#lists.size(salsaRecords) < 50 ? #lists.size(salsaRecords) : 50}">50</span> de <span id="totalCount_salsa" class="font-bold text-slate-700 dark:text-slate-200" th:text="${#lists.size(salsaRecords)}">0</span> registros
+                        Mostrando <span id="startIdx_salsa" class="font-bold text-slate-700 dark:text-slate-200" th:text="${salsaCount == 0 ? 0 : 1}">1</span> a <span id="endIdx_salsa" class="font-bold text-slate-700 dark:text-slate-200" th:text="${salsaCount < 50 ? salsaCount : 50}">50</span> de <span id="totalCount_salsa" class="font-bold text-slate-700 dark:text-slate-200" th:text="${salsaCount}">0</span> registros
                     </div>
                     <div class="flex items-center gap-1">
                         <button type="button" onclick="goToPage('salsa', 1)" id="btnFirst_salsa" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">«</button>
                         <button type="button" onclick="changePage('salsa', -1)" id="btnPrev_salsa" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">‹</button>
-                        <span class="px-3 py-1 bg-slate-200 dark:bg-gray-700 font-bold text-slate-800 dark:text-slate-100 rounded" id="pageNumber_salsa" th:text="'Pág 1 / ' + ${#lists.isEmpty(salsaRecords) ? 1 : (#lists.size(salsaRecords) + 49) / 50}">Pág 1 / 1</span>
+                        <span class="px-3 py-1 bg-slate-200 dark:bg-gray-700 font-bold text-slate-800 dark:text-slate-100 rounded" id="pageNumber_salsa" th:text="'Pág 1 / ' + ${salsaCount == 0 ? 1 : (salsaCount + 49) / 50}">Pág 1 / 1</span>
                         <button type="button" onclick="changePage('salsa', 1)" id="btnNext_salsa" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">›</button>
                         <button type="button" onclick="goToLastPage('salsa')" id="btnLast_salsa" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">»</button>
                     </div>
@@ -573,13 +573,13 @@
                                 <th class="px-4 py-3 text-left text-xs font-bold text-purple-900 dark:text-purple-200 uppercase tracking-wider border border-purple-200 dark:border-purple-800">Fecha Registro</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white dark:bg-gray-800">
+                        <tbody id="tbody-livejoy" th:fragment="filas-livejoy" class="bg-white dark:bg-gray-800">
                             <tr th:if="${#lists.isEmpty(livejoyRecords)}">
                                 <td colspan="8" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400 italic border border-slate-300 dark:border-gray-600">
                                     No hay registros de LIVEJOY
                                 </td>
                             </tr>
-                            <tr th:each="registro, rowStat : ${livejoyRecords}" th:style="${rowStat.index >= 50} ? 'display:none' : null" class="hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-colors data-row-livejoy" th:attr="data-period=${registro.periodo},data-tutora=${registro.tutora}">
+                            <tr th:each="registro : ${livejoyRecords}" class="hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-colors data-row-livejoy" th:attr="data-period=${registro.periodo},data-tutora=${registro.tutora}">
                                 <td class="px-4 py-3 whitespace-nowrap text-sm font-mono font-bold text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-gray-600">
                                     <a th:href="@{/historico/usuario/{id}(id=${registro.id})}" class="text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:underline" th:text="${registro.id}">ID</a>
                                 </td>
@@ -605,7 +605,7 @@
                     </table>
                 </div>
                 <!-- Barra de Paginación LIVEJOY -->
-                <div th:if="${not #lists.isEmpty(livejoyRecords)}" class="px-4 py-3 bg-slate-50 dark:bg-gray-800/80 border-t border-slate-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <div th:if="${livejoyCount > 0}" class="px-4 py-3 bg-slate-50 dark:bg-gray-800/80 border-t border-slate-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
                     <div class="flex items-center gap-2">
                         <span class="text-slate-500 dark:text-slate-400 font-medium">Mostrar</span>
                         <select onchange="changePageSize('livejoy', this.value)" class="px-2 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded text-slate-700 dark:text-slate-200 font-semibold focus:ring-2 focus:ring-purple-500">
@@ -617,12 +617,12 @@
                         <span class="text-slate-500 dark:text-slate-400 font-medium">filas por página</span>
                     </div>
                     <div class="text-slate-500 dark:text-slate-400 font-medium">
-                        Mostrando <span id="startIdx_livejoy" class="font-bold text-slate-700 dark:text-slate-200" th:text="${#lists.isEmpty(livejoyRecords) ? 0 : 1}">1</span> a <span id="endIdx_livejoy" class="font-bold text-slate-700 dark:text-slate-200" th:text="${#lists.size(livejoyRecords) < 50 ? #lists.size(livejoyRecords) : 50}">50</span> de <span id="totalCount_livejoy" class="font-bold text-slate-700 dark:text-slate-200" th:text="${#lists.size(livejoyRecords)}">0</span> registros
+                        Mostrando <span id="startIdx_livejoy" class="font-bold text-slate-700 dark:text-slate-200" th:text="${livejoyCount == 0 ? 0 : 1}">1</span> a <span id="endIdx_livejoy" class="font-bold text-slate-700 dark:text-slate-200" th:text="${livejoyCount < 50 ? livejoyCount : 50}">50</span> de <span id="totalCount_livejoy" class="font-bold text-slate-700 dark:text-slate-200" th:text="${livejoyCount}">0</span> registros
                     </div>
                     <div class="flex items-center gap-1">
                         <button type="button" onclick="goToPage('livejoy', 1)" id="btnFirst_livejoy" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">«</button>
                         <button type="button" onclick="changePage('livejoy', -1)" id="btnPrev_livejoy" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">‹</button>
-                        <span class="px-3 py-1 bg-slate-200 dark:bg-gray-700 font-bold text-slate-800 dark:text-slate-100 rounded" id="pageNumber_livejoy" th:text="'Pág 1 / ' + ${#lists.isEmpty(livejoyRecords) ? 1 : (#lists.size(livejoyRecords) + 49) / 50}">Pág 1 / 1</span>
+                        <span class="px-3 py-1 bg-slate-200 dark:bg-gray-700 font-bold text-slate-800 dark:text-slate-100 rounded" id="pageNumber_livejoy" th:text="'Pág 1 / ' + ${livejoyCount == 0 ? 1 : (livejoyCount + 49) / 50}">Pág 1 / 1</span>
                         <button type="button" onclick="changePage('livejoy', 1)" id="btnNext_livejoy" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">›</button>
                         <button type="button" onclick="goToLastPage('livejoy')" id="btnLast_livejoy" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">»</button>
                     </div>
@@ -805,13 +805,13 @@
                                 <th class="px-4 py-3 text-left text-xs font-bold text-green-900 dark:text-green-200 uppercase tracking-wider border border-green-200 dark:border-green-800">Fecha Registro</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white dark:bg-gray-800">
+                        <tbody id="tbody-olive" th:fragment="filas-olive" class="bg-white dark:bg-gray-800">
                             <tr th:if="${#lists.isEmpty(oliveRecords)}">
                                 <td colspan="11" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400 italic border border-slate-300 dark:border-gray-600">
                                     No hay registros de OLIVE
                                 </td>
                             </tr>
-                            <tr th:each="registro, rowStat : ${oliveRecords}" th:style="${rowStat.index >= 50} ? 'display:none' : null" class="hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors data-row-olive" 
+                            <tr th:each="registro : ${oliveRecords}" class="hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors data-row-olive" 
                                 th:attr="data-period=${registro.periodo},data-monedas=${registro.monedas},data-recompensa=${registro.recompensa},data-pagoagencia=${registro.pagoAgencia},data-bonusrevenue=${registro.bonusRevenue},data-pagotutora=${registro.pagoTutora},data-tutora=${registro.pagoTutora}">
                                 <td class="px-4 py-3 whitespace-nowrap text-sm font-mono font-bold text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-gray-600">
                                     <a th:href="@{/historico/usuario/{id}(id=${registro.id})}" class="text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:underline" th:text="${registro.id}">ID</a>
@@ -831,19 +831,19 @@
                             </tr>
                             <tr id="totalRowOlive" th:if="${not #lists.isEmpty(oliveRecords)}" class="bg-gray-100 dark:bg-gray-700 font-bold">
                                 <td colspan="2" class="px-4 py-3 text-right text-sm uppercase border border-slate-300 dark:border-gray-600">TOTAL:</td>
-                                <td id="totalMonedasOlive" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-orange-600 dark:text-orange-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${#numbers.formatDecimal(#aggregates.sum(oliveRecords.![monedas]), 1, 2)}">0.00</td>
+                                <td id="totalMonedasOlive" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-orange-600 dark:text-orange-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${#numbers.formatDecimal(oliveTotalMonedas, 1, 2)}">0.00</td>
                                 <td class="border border-slate-300 dark:border-gray-600"></td>
-                                <td id="totalRecompensaOlive" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(#aggregates.sum(oliveRecords.![recompensa]), 1, 2)}">$0.00</td>
-                                <td id="totalPagoAgenciaOlive" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(#aggregates.sum(oliveRecords.![pagoAgencia]), 1, 2)}">$0.00</td>
-                                <td id="totalBonusRevenueOlive" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(#aggregates.sum(oliveRecords.![bonusRevenue]), 1, 2)}">$0.00</td>
-                                <td id="totalPagoTutoraOlive" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 font-bold border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(#aggregates.sum(oliveRecords.![pagoTutora]), 1, 2)}">$0.00</td>
+                                <td id="totalRecompensaOlive" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 font-semibold border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(oliveTotalRecompensa, 1, 2)}">$0.00</td>
+                                <td id="totalPagoAgenciaOlive" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(oliveTotalPagoAgencia, 1, 2)}">$0.00</td>
+                                <td id="totalBonusRevenueOlive" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(oliveTotalBonusRevenue, 1, 2)}">$0.00</td>
+                                <td id="totalPagoTutoraOlive" class="px-4 py-3 whitespace-nowrap text-sm text-right font-mono text-purple-700 dark:text-purple-400 font-bold border border-slate-300 dark:border-gray-600" th:text="${'$' + #numbers.formatDecimal(oliveTotalPagoTutora, 1, 2)}">$0.00</td>
                                 <td colspan="3" class="border border-slate-300 dark:border-gray-600"></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
                 <!-- Barra de Paginación OLIVE -->
-                <div th:if="${not #lists.isEmpty(oliveRecords)}" class="px-4 py-3 bg-slate-50 dark:bg-gray-800/80 border-t border-slate-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <div th:if="${oliveCount > 0}" class="px-4 py-3 bg-slate-50 dark:bg-gray-800/80 border-t border-slate-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
                     <div class="flex items-center gap-2">
                         <span class="text-slate-500 dark:text-slate-400 font-medium">Mostrar</span>
                         <select onchange="changePageSize('olive', this.value)" class="px-2 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded text-slate-700 dark:text-slate-200 font-semibold focus:ring-2 focus:ring-green-500">
@@ -855,12 +855,12 @@
                         <span class="text-slate-500 dark:text-slate-400 font-medium">filas por página</span>
                     </div>
                     <div class="text-slate-500 dark:text-slate-400 font-medium">
-                        Mostrando <span id="startIdx_olive" class="font-bold text-slate-700 dark:text-slate-200" th:text="${#lists.isEmpty(oliveRecords) ? 0 : 1}">1</span> a <span id="endIdx_olive" class="font-bold text-slate-700 dark:text-slate-200" th:text="${#lists.size(oliveRecords) < 50 ? #lists.size(oliveRecords) : 50}">50</span> de <span id="totalCount_olive" class="font-bold text-slate-700 dark:text-slate-200" th:text="${#lists.size(oliveRecords)}">0</span> registros
+                        Mostrando <span id="startIdx_olive" class="font-bold text-slate-700 dark:text-slate-200" th:text="${oliveCount == 0 ? 0 : 1}">1</span> a <span id="endIdx_olive" class="font-bold text-slate-700 dark:text-slate-200" th:text="${oliveCount < 50 ? oliveCount : 50}">50</span> de <span id="totalCount_olive" class="font-bold text-slate-700 dark:text-slate-200" th:text="${oliveCount}">0</span> registros
                     </div>
                     <div class="flex items-center gap-1">
                         <button type="button" onclick="goToPage('olive', 1)" id="btnFirst_olive" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">«</button>
                         <button type="button" onclick="changePage('olive', -1)" id="btnPrev_olive" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">‹</button>
-                        <span class="px-3 py-1 bg-slate-200 dark:bg-gray-700 font-bold text-slate-800 dark:text-slate-100 rounded" id="pageNumber_olive" th:text="'Pág 1 / ' + ${#lists.isEmpty(oliveRecords) ? 1 : (#lists.size(oliveRecords) + 49) / 50}">Pág 1 / 1</span>
+                        <span class="px-3 py-1 bg-slate-200 dark:bg-gray-700 font-bold text-slate-800 dark:text-slate-100 rounded" id="pageNumber_olive" th:text="'Pág 1 / ' + ${oliveCount == 0 ? 1 : (oliveCount + 49) / 50}">Pág 1 / 1</span>
                         <button type="button" onclick="changePage('olive', 1)" id="btnNext_olive" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">›</button>
                         <button type="button" onclick="goToLastPage('olive')" id="btnLast_olive" class="px-2.5 py-1 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded font-bold hover:bg-slate-100 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">»</button>
                     </div>
@@ -1009,92 +1009,128 @@
     </div>
 
     <script>
-        // Motor de Paginación para las 4 Tablas
+        // Motor de Paginación: las filas se piden al servidor página por página
+        function readInitialCount(tableKey) {
+            const el = document.getElementById(`totalCount_${tableKey}`);
+            const n = el ? parseInt(el.textContent, 10) : 0;
+            return isNaN(n) ? 0 : n;
+        }
+
         const paginationState = {
-            consolidado: { currentPage: 1, pageSize: 50 },
-            salsa: { currentPage: 1, pageSize: 50 },
-            livejoy: { currentPage: 1, pageSize: 50 },
-            olive: { currentPage: 1, pageSize: 50 }
+            salsa: { currentPage: 1, pageSize: 50, total: readInitialCount('salsa'), requestId: 0 },
+            livejoy: { currentPage: 1, pageSize: 50, total: readInitialCount('livejoy'), requestId: 0 },
+            olive: { currentPage: 1, pageSize: 50, total: readInitialCount('olive'), requestId: 0 }
         };
 
-        function updatePaginationForTable(tableKey) {
+        // Texto de búsqueda activo (búsqueda en vivo por ID o nombre)
+        let historicoSearchQuery = '';
+
+        // Porcentajes de la URL (descuento, p1, p2...) para que el cálculo de Tutora coincida
+        const historicoUrlParams = new URLSearchParams(window.location.search);
+
+        function getTotalPages(tableKey) {
+            const state = paginationState[tableKey];
+            const pageSize = state.pageSize === 'all' ? Math.max(state.total, 1) : parseInt(state.pageSize, 10);
+            return Math.max(1, Math.ceil(state.total / pageSize));
+        }
+
+        function renderPaginationFooter(tableKey) {
             const state = paginationState[tableKey];
             if (!state) return;
+            const totalPages = getTotalPages(tableKey);
+            const pageSize = state.pageSize === 'all' ? Math.max(state.total, 1) : parseInt(state.pageSize, 10);
+            const startIdx = state.total === 0 ? 0 : (state.currentPage - 1) * pageSize + 1;
+            const endIdx = Math.min(state.currentPage * pageSize, state.total);
 
-            const rowClass = '.data-row-' + tableKey;
-            const allRows = Array.from(document.querySelectorAll(rowClass));
-            if (allRows.length === 0) return;
+            const set = (id, value) => { const el = document.getElementById(`${id}_${tableKey}`); if (el) el.textContent = value; };
+            set('totalCount', state.total);
+            set('startIdx', startIdx);
+            set('endIdx', endIdx);
+            set('pageNumber', `Pág ${state.currentPage} / ${totalPages}`);
 
-            const matchingRows = allRows.filter(row => !row.classList.contains('hidden-filter'));
+            const disable = (id, value) => { const el = document.getElementById(`${id}_${tableKey}`); if (el) el.disabled = value; };
+            disable('btnFirst', state.currentPage <= 1);
+            disable('btnPrev', state.currentPage <= 1);
+            disable('btnNext', state.currentPage >= totalPages);
+            disable('btnLast', state.currentPage >= totalPages);
+        }
 
-            const totalCount = matchingRows.length;
-            const pageSize = state.pageSize === 'all' ? (totalCount || 1) : parseInt(state.pageSize, 10);
-            const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+        async function loadTablePage(tableKey) {
+            const state = paginationState[tableKey];
+            const tbody = document.getElementById(`tbody-${tableKey}`);
+            if (!state || !tbody) return;
 
-            if (state.currentPage > totalPages) state.currentPage = totalPages;
-            if (state.currentPage < 1) state.currentPage = 1;
+            const params = new URLSearchParams({
+                sheet: tableKey,
+                periodo: (typeof selectedPeriods !== 'undefined' && selectedPeriods[tableKey]) || 'all',
+                q: historicoSearchQuery,
+                page: state.currentPage,
+                size: state.pageSize
+            });
+            ['descuento', 'p1', 'p2', 'oliveP1', 'oliveP2'].forEach(key => {
+                if (historicoUrlParams.has(key)) params.set(key, historicoUrlParams.get(key));
+            });
 
-            const startIdx = (state.currentPage - 1) * pageSize;
-            const endIdx = state.pageSize === 'all' ? totalCount : Math.min(startIdx + pageSize, totalCount);
-
-            matchingRows.forEach((row, idx) => {
-                if (idx >= startIdx && idx < endIdx) {
-                    row.classList.remove('hidden-page');
-                } else {
-                    row.classList.add('hidden-page');
+            const requestId = ++state.requestId;
+            tbody.style.opacity = '0.5';
+            try {
+                const response = await fetch(`/historico/api/filas?${params.toString()}`, { headers: { 'Accept': 'text/html' } });
+                if (requestId !== state.requestId) return; // llegó una petición más nueva
+                if (response.redirected || !response.ok) {
+                    // Sesión vencida u otro error: recargar lleva al login si hace falta
+                    window.location.reload();
+                    return;
                 }
-            });
+                const html = await response.text();
+                if (requestId !== state.requestId) return;
+                const tpl = document.createElement('template');
+                tpl.innerHTML = `<table>${html}</table>`;
+                const newBody = tpl.content.querySelector('tbody');
+                if (newBody) tbody.innerHTML = newBody.innerHTML;
 
-            allRows.forEach(row => {
-                const isMatching = !row.classList.contains('hidden-filter');
-                const isPageVisible = !row.classList.contains('hidden-page');
-                row.style.display = (isMatching && isPageVisible) ? '' : 'none';
-            });
+                state.total = parseInt(response.headers.get('X-Total-Count') || '0', 10) || 0;
+                state.currentPage = parseInt(response.headers.get('X-Page') || '1', 10) || 1;
+                renderPaginationFooter(tableKey);
+            } catch (error) {
+                console.error(error);
+                if (requestId === state.requestId) alert('No se pudieron cargar los registros. Revisa tu conexión e intenta de nuevo.');
+            } finally {
+                if (requestId === state.requestId) tbody.style.opacity = '';
+            }
+        }
 
-            const totalEl = document.getElementById(`totalCount_${tableKey}`);
-            const startEl = document.getElementById(`startIdx_${tableKey}`);
-            const endEl = document.getElementById(`endIdx_${tableKey}`);
-            const pageNumEl = document.getElementById(`pageNumber_${tableKey}`);
-            const btnFirst = document.getElementById(`btnFirst_${tableKey}`);
-            const btnPrev = document.getElementById(`btnPrev_${tableKey}`);
-            const btnNext = document.getElementById(`btnNext_${tableKey}`);
-            const btnLast = document.getElementById(`btnLast_${tableKey}`);
-
-            if (totalEl) totalEl.textContent = totalCount;
-            if (startEl) startEl.textContent = totalCount === 0 ? 0 : startIdx + 1;
-            if (endEl) endEl.textContent = endIdx;
-            if (pageNumEl) pageNumEl.textContent = `Pág ${state.currentPage} / ${totalPages}`;
-
-            if (btnFirst) btnFirst.disabled = (state.currentPage <= 1);
-            if (btnPrev) btnPrev.disabled = (state.currentPage <= 1);
-            if (btnNext) btnNext.disabled = (state.currentPage >= totalPages);
-            if (btnLast) btnLast.disabled = (state.currentPage >= totalPages);
+        function updatePaginationForTable(tableKey) {
+            if (!paginationState[tableKey]) return;
+            loadTablePage(tableKey);
         }
 
         function changePage(tableKey, delta) {
-            paginationState[tableKey].currentPage += delta;
-            updatePaginationForTable(tableKey);
+            const state = paginationState[tableKey];
+            const target = Math.min(Math.max(1, state.currentPage + delta), getTotalPages(tableKey));
+            if (target === state.currentPage) return;
+            state.currentPage = target;
+            loadTablePage(tableKey);
         }
 
         function goToPage(tableKey, pageNum) {
-            paginationState[tableKey].currentPage = pageNum;
-            updatePaginationForTable(tableKey);
+            const state = paginationState[tableKey];
+            if (state.currentPage === pageNum) return;
+            state.currentPage = pageNum;
+            loadTablePage(tableKey);
         }
 
         function goToLastPage(tableKey) {
             const state = paginationState[tableKey];
-            const allRows = Array.from(document.querySelectorAll('.data-row-' + tableKey));
-            const matchingRows = allRows.filter(row => !row.classList.contains('hidden-filter'));
-            const pageSize = state.pageSize === 'all' ? matchingRows.length : parseInt(state.pageSize, 10);
-            const totalPages = Math.max(1, Math.ceil(matchingRows.length / pageSize));
-            state.currentPage = totalPages;
-            updatePaginationForTable(tableKey);
+            const last = getTotalPages(tableKey);
+            if (state.currentPage === last) return;
+            state.currentPage = last;
+            loadTablePage(tableKey);
         }
 
         function changePageSize(tableKey, size) {
             paginationState[tableKey].pageSize = size;
             paginationState[tableKey].currentPage = 1;
-            updatePaginationForTable(tableKey);
+            loadTablePage(tableKey);
         }
 
         // Dark mode toggle
@@ -1146,9 +1182,6 @@
                 document.getElementById('tabComparar').classList.add('bg-orange-600', 'text-white');
             }
             
-            if (tabName !== 'consolidado' && tabName !== 'comparar') {
-                applyPeriodFilter(tabName);
-            }
             updateDeletePeriodButtonState();
             updateDownloadPeriodButtonState();
         }
@@ -1213,8 +1246,8 @@
         });
 
         function scrollToTable(tabName) {
-            const firstRow = document.querySelector(`.data-row-${tabName}`);
-            const table = firstRow ? firstRow.closest('table') : null;
+            const tbody = document.getElementById(`tbody-${tabName}`);
+            const table = tbody ? tbody.closest('table') : null;
             if (!table) {
                 return;
             }
@@ -1267,78 +1300,13 @@
         }
 
         function applyPeriodFilter(tabName) {
-            const selectedPeriod = selectedPeriods[tabName] || 'all';
-            const rows = document.querySelectorAll(`.data-row-${tabName}`);
-
-            rows.forEach(row => {
-                const rowPeriod = row.getAttribute('data-period') || '';
-                const mustShow = selectedPeriod === 'all' || rowPeriod === selectedPeriod;
-                row.classList.toggle('hidden-period', !mustShow);
-                updateRowVisibility(row, tabName);
-            });
-
-            updateFilteredTotals();
-            if (paginationState[tabName]) {
-                paginationState[tabName].currentPage = 1;
-                updatePaginationForTable(tabName);
-            }
+            if (!paginationState[tabName]) return;
+            paginationState[tabName].currentPage = 1;
+            loadTablePage(tabName);
         }
 
         function updateFilteredTotals() {
-            let salsaTotal = 0;
-            document.querySelectorAll('.data-row-salsa').forEach(row => {
-                if (!row.classList.contains('hidden-filter')) {
-                    salsaTotal += parseFloat(row.getAttribute('data-tutora') || '0');
-                }
-            });
-
-            let livejoyTotal = 0;
-            document.querySelectorAll('.data-row-livejoy').forEach(row => {
-                if (!row.classList.contains('hidden-filter')) {
-                    livejoyTotal += parseFloat(row.getAttribute('data-tutora') || '0');
-                }
-            });
-
-            let oliveTotalMonedas = 0;
-            let oliveTotalRecompensa = 0;
-            let oliveTotalPagoAgencia = 0;
-            let oliveTotalBonusRevenue = 0;
-            let oliveTotalPagoTutora = 0;
-
-            document.querySelectorAll('.data-row-olive').forEach(row => {
-                if (!row.classList.contains('hidden-filter')) {
-                    oliveTotalMonedas += parseFloat(row.getAttribute('data-monedas') || '0');
-                    oliveTotalRecompensa += parseFloat(row.getAttribute('data-recompensa') || '0');
-                    oliveTotalPagoAgencia += parseFloat(row.getAttribute('data-pagoagencia') || '0');
-                    oliveTotalBonusRevenue += parseFloat(row.getAttribute('data-bonusrevenue') || '0');
-                    oliveTotalPagoTutora += parseFloat(row.getAttribute('data-pagotutora') || '0');
-                }
-            });
-
-            const totalValueSalsa = document.getElementById('totalValueSalsa');
-            if (totalValueSalsa) {
-                totalValueSalsa.textContent = `$${salsaTotal.toFixed(2)}`;
-            }
-
-            const totalValueLivejoy = document.getElementById('totalValueLivejoy');
-            if (totalValueLivejoy) {
-                totalValueLivejoy.textContent = `$${livejoyTotal.toFixed(2)}`;
-            }
-
-            const totalMonedasOlive = document.getElementById('totalMonedasOlive');
-            if (totalMonedasOlive) totalMonedasOlive.textContent = oliveTotalMonedas.toFixed(2);
-
-            const totalRecompensaOlive = document.getElementById('totalRecompensaOlive');
-            if (totalRecompensaOlive) totalRecompensaOlive.textContent = `$${oliveTotalRecompensa.toFixed(2)}`;
-
-            const totalPagoAgenciaOlive = document.getElementById('totalPagoAgenciaOlive');
-            if (totalPagoAgenciaOlive) totalPagoAgenciaOlive.textContent = `$${oliveTotalPagoAgencia.toFixed(2)}`;
-
-            const totalBonusRevenueOlive = document.getElementById('totalBonusRevenueOlive');
-            if (totalBonusRevenueOlive) totalBonusRevenueOlive.textContent = `$${oliveTotalBonusRevenue.toFixed(2)}`;
-
-            const totalPagoTutoraOlive = document.getElementById('totalPagoTutoraOlive');
-            if (totalPagoTutoraOlive) totalPagoTutoraOlive.textContent = `$${oliveTotalPagoTutora.toFixed(2)}`;
+            // Los totales los calcula el servidor sobre todos los registros filtrados
         }
 
         function getActiveTabName() {
@@ -1740,48 +1708,20 @@
             }
         }
 
-        // Local real-time search
+        // Búsqueda en vivo: se filtra en el servidor sobre todos los registros
         const searchInput = document.getElementById('localSearchInput');
+        let searchDebounce = null;
+        function runHistoricoSearch() {
+            historicoSearchQuery = (searchInput.value || '').trim();
+            ['salsa', 'livejoy', 'olive'].forEach(tab => {
+                paginationState[tab].currentPage = 1;
+                loadTablePage(tab);
+            });
+        }
         if (searchInput) {
             searchInput.addEventListener('input', function() {
-                const queryRaw = this.value;
-                const query = cleanAccents(queryRaw);
-                
-                // Filter Salsa
-                document.querySelectorAll('.data-row-salsa').forEach(row => {
-                    const id = cleanAccents(row.cells[0].textContent);
-                    const name = cleanAccents(row.cells[1].textContent);
-                    const visible = id.includes(query) || name.includes(query);
-                    row.classList.toggle('hidden-search', !visible);
-                    updateRowVisibility(row, 'salsa');
-                });
-                
-                // Filter Livejoy
-                document.querySelectorAll('.data-row-livejoy').forEach(row => {
-                    const id = cleanAccents(row.cells[0].textContent);
-                    const name = cleanAccents(row.cells[1].textContent);
-                    const visible = id.includes(query) || name.includes(query);
-                    row.classList.toggle('hidden-search', !visible);
-                    updateRowVisibility(row, 'livejoy');
-                });
-                
-                // Filter Olive
-                document.querySelectorAll('.data-row-olive').forEach(row => {
-                    const id = cleanAccents(row.cells[0].textContent);
-                    const name = cleanAccents(row.cells[1].textContent);
-                    const visible = id.includes(query) || name.includes(query);
-                    row.classList.toggle('hidden-search', !visible);
-                    updateRowVisibility(row, 'olive');
-                });
-                
-                // Also mirror search to consolidado search input for general ease of use
-                const consolidadoSearch = document.getElementById('consolidadoSearchInput');
-                if (consolidadoSearch) {
-                    consolidadoSearch.value = queryRaw;
-                    filterConsolidado();
-                }
-
-                updateFilteredTotals();
+                clearTimeout(searchDebounce);
+                searchDebounce = setTimeout(runHistoricoSearch, 300);
             });
         }
     </script>
@@ -1800,15 +1740,16 @@
         updatePeriodButtons('salsa', 'all');
         updatePeriodButtons('livejoy', 'all');
         updatePeriodButtons('olive', 'all');
-        applyPeriodFilter('salsa');
-        applyPeriodFilter('livejoy');
-        applyPeriodFilter('olive');
         filterConsolidado();
 
-        updatePaginationForTable('consolidado');
-        updatePaginationForTable('salsa');
-        updatePaginationForTable('livejoy');
-        updatePaginationForTable('olive');
+        renderPaginationFooter('salsa');
+        renderPaginationFooter('livejoy');
+        renderPaginationFooter('olive');
+
+        // Si se llegó desde "Buscar", aplicar la misma búsqueda del servidor a la paginación
+        if (searchInput && searchInput.value.trim() !== '') {
+            runHistoricoSearch();
+        }
 
         async function aplicarPorcentajes(platform) {
             const activeTab = getActiveTabName();

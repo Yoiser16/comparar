@@ -27,6 +27,10 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import java.util.stream.Collectors;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -1762,9 +1766,144 @@ public class FileComparisonController {
      * Prepara los datos del histórico agrupados por sheet (SALSA, LIVEJOY, OLIVE)
      * con cálculo de Tutora para SALSA y LIVEJOY
      */
-    private void prepararDatosHistoricoPorSheet(Model model, List<HistoricoIngreso> registros, 
+    private void prepararDatosHistoricoPorSheet(Model model, List<HistoricoIngreso> registros,
                                                  List<String> periodosDisponibles, String periodoSeleccionado,
                                                  double descuento, double p1, double p2, double oliveP1, double oliveP2) {
+        Map<String, List<Map<String, Object>>> filas = construirFilasPorSheet(registros, descuento, p1, p2, oliveP1, oliveP2);
+
+        // Solo se envía la primera página de cada tabla; el resto se pide por /historico/api/filas
+        agregarPaginaAlModelo(model, "salsa", filas.get("SALSA"), 1, String.valueOf(TAMANO_PAGINA_HISTORICO));
+        agregarPaginaAlModelo(model, "livejoy", filas.get("LIVEJOY"), 1, String.valueOf(TAMANO_PAGINA_HISTORICO));
+        agregarPaginaAlModelo(model, "olive", filas.get("OLIVE"), 1, String.valueOf(TAMANO_PAGINA_HISTORICO));
+
+        // Extraer períodos únicos específicos por plataforma desde la BD
+        model.addAttribute("periodosSalsa", historicoService.obtenerPeriodosDisponiblesPorSheet("SALSA"));
+        model.addAttribute("periodosLivejoy", historicoService.obtenerPeriodosDisponiblesPorSheet("LIVEJOY"));
+        model.addAttribute("periodosOlive", historicoService.obtenerPeriodosDisponiblesPorSheet("OLIVE"));
+        model.addAttribute("registros", registros);
+        model.addAttribute("periodosDisponibles", periodosDisponibles);
+        model.addAttribute("periodoSeleccionado", periodoSeleccionado);
+
+        // Valores por defecto que la plantilla necesita (las rutas /historico/buscar y
+        // /historico/periodo no los definían y la página fallaba al renderizar)
+        model.addAttribute("compararActive", false);
+        model.addAttribute("activeTab", "salsa");
+        model.addAttribute("descuento", descuento);
+        model.addAttribute("p1", p1);
+        model.addAttribute("p2", p2);
+        model.addAttribute("oliveP1", oliveP1);
+        model.addAttribute("oliveP2", oliveP2);
+    }
+
+    private static final int TAMANO_PAGINA_HISTORICO = 50;
+
+    /**
+     * Devuelve las filas de una página del histórico (fragmento HTML de la tabla) ya filtradas
+     * por período y búsqueda. El total de registros y la página efectiva van en las cabeceras
+     * X-Total-Count y X-Page.
+     */
+    @GetMapping("/historico/api/filas")
+    public String obtenerFilasHistorico(
+            @RequestParam("sheet") String sheet,
+            @RequestParam(value = "periodo", defaultValue = "all") String periodo,
+            @RequestParam(value = "q", defaultValue = "") String q,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "50") String size,
+            @RequestParam(value = "descuento", defaultValue = "60") double descuento,
+            @RequestParam(value = "p1", defaultValue = "12") double p1,
+            @RequestParam(value = "p2", defaultValue = "40") double p2,
+            @RequestParam(value = "oliveP1", defaultValue = "60") double oliveP1,
+            @RequestParam(value = "oliveP2", defaultValue = "40") double oliveP2,
+            Model model,
+            HttpServletResponse response) {
+
+        String tab = sheet == null ? "" : sheet.trim().toLowerCase();
+        if (!List.of("salsa", "livejoy", "olive").contains(tab)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Plataforma no válida");
+        }
+
+        List<HistoricoIngreso> registros = historicoService.obtenerTodosLosRegistros();
+        List<Map<String, Object>> filas = construirFilasPorSheet(registros, descuento, p1, p2, oliveP1, oliveP2)
+                .get(tab.toUpperCase());
+
+        // Filtro por período (igual que antes en el navegador: coincidencia exacta)
+        if (periodo != null && !"all".equals(periodo)) {
+            filas = filas.stream()
+                    .filter(f -> periodo.equals(f.get("periodo") != null ? f.get("periodo").toString() : ""))
+                    .collect(Collectors.toList());
+        }
+
+        // Búsqueda por ID o nombre (sin tildes ni mayúsculas, igual que la búsqueda en vivo)
+        String consulta = limpiarTildes(q);
+        if (!consulta.isEmpty()) {
+            String campoNombre = "livejoy".equals(tab) ? "usuario" : "nombre";
+            filas = filas.stream()
+                    .filter(f -> limpiarTildes(f.get("id") != null ? f.get("id").toString() : "").contains(consulta)
+                            || limpiarTildes(f.get(campoNombre) != null ? f.get(campoNombre).toString() : "").contains(consulta))
+                    .collect(Collectors.toList());
+        }
+
+        int paginaEfectiva = agregarPaginaAlModelo(model, tab, filas, page, size);
+        response.setHeader("X-Total-Count", String.valueOf(filas.size()));
+        response.setHeader("X-Page", String.valueOf(paginaEfectiva));
+        response.setHeader("Cache-Control", "no-store");
+        return "historico :: filas-" + tab;
+    }
+
+    /**
+     * Pone en el modelo una página de filas de una plataforma, su conteo total y los totales
+     * (calculados sobre todas las filas, no solo la página). Devuelve la página efectiva.
+     */
+    private int agregarPaginaAlModelo(Model model, String tab, List<Map<String, Object>> filas, int page, String size) {
+        int total = filas.size();
+        int tamano;
+        if ("all".equalsIgnoreCase(size)) {
+            tamano = Math.max(total, 1);
+        } else {
+            try {
+                tamano = Math.max(1, Integer.parseInt(size));
+            } catch (NumberFormatException e) {
+                tamano = TAMANO_PAGINA_HISTORICO;
+            }
+        }
+        int totalPaginas = Math.max(1, (total + tamano - 1) / tamano);
+        int pagina = Math.min(Math.max(1, page), totalPaginas);
+        int desde = Math.min((pagina - 1) * tamano, total);
+        int hasta = Math.min(desde + tamano, total);
+
+        model.addAttribute(tab + "Records", new ArrayList<>(filas.subList(desde, hasta)));
+        model.addAttribute(tab + "Count", total);
+
+        double totalTutora = filas.stream().mapToDouble(r -> (Double) r.get("tutora")).sum();
+        model.addAttribute("totalTutora" + Character.toUpperCase(tab.charAt(0)) + tab.substring(1), totalTutora);
+
+        if ("olive".equals(tab)) {
+            model.addAttribute("oliveTotalMonedas", filas.stream().mapToDouble(r -> (Double) r.get("monedas")).sum());
+            model.addAttribute("oliveTotalRecompensa", filas.stream().mapToDouble(r -> (Double) r.get("recompensa")).sum());
+            model.addAttribute("oliveTotalPagoAgencia", filas.stream().mapToDouble(r -> (Double) r.get("pagoAgencia")).sum());
+            model.addAttribute("oliveTotalBonusRevenue", filas.stream().mapToDouble(r -> (Double) r.get("bonusRevenue")).sum());
+            model.addAttribute("oliveTotalPagoTutora", filas.stream().mapToDouble(r -> (Double) r.get("pagoTutora")).sum());
+        }
+        return pagina;
+    }
+
+    private static String limpiarTildes(String texto) {
+        if (texto == null) {
+            return "";
+        }
+        return java.text.Normalizer.normalize(texto, java.text.Normalizer.Form.NFD)
+                .replaceAll("[\\u0300-\\u036f]", "")
+                .toLowerCase()
+                .trim();
+    }
+
+    /**
+     * Construye las filas de las tablas del histórico agrupadas por sheet (SALSA, LIVEJOY, OLIVE)
+     * con el cálculo de Tutora de cada plataforma. Conserva el orden de los registros recibidos.
+     */
+    private Map<String, List<Map<String, Object>>> construirFilasPorSheet(List<HistoricoIngreso> registros,
+                                                                         double descuento, double p1, double p2,
+                                                                         double oliveP1, double oliveP2) {
         // Agrupar registros por sheet
         List<Map<String, Object>> salsaRecords = new ArrayList<>();
         List<Map<String, Object>> livejoyRecords = new ArrayList<>();
@@ -1839,35 +1978,12 @@ public class FileComparisonController {
                 oliveRecords.add(data);
             }
         }
-        
-        // Calcular totales de Tutora
-        double totalTutoraSalsa = salsaRecords.stream()
-                .mapToDouble(r -> (Double) r.get("tutora"))
-                .sum();
-        double totalTutoraLivejoy = livejoyRecords.stream()
-                .mapToDouble(r -> (Double) r.get("tutora"))
-                .sum();
-        double totalTutoraOlive = oliveRecords.stream()
-                .mapToDouble(r -> (Double) r.get("tutora"))
-                .sum();
-        
-        // Extraer períodos únicos específicos por plataforma desde la BD
-        List<String> periodosSalsa = historicoService.obtenerPeriodosDisponiblesPorSheet("SALSA");
-        List<String> periodosLivejoy = historicoService.obtenerPeriodosDisponiblesPorSheet("LIVEJOY");
-        List<String> periodosOlive = historicoService.obtenerPeriodosDisponiblesPorSheet("OLIVE");
-        
-        model.addAttribute("salsaRecords", salsaRecords);
-        model.addAttribute("livejoyRecords", livejoyRecords);
-        model.addAttribute("oliveRecords", oliveRecords);
-        model.addAttribute("totalTutoraSalsa", totalTutoraSalsa);
-        model.addAttribute("totalTutoraLivejoy", totalTutoraLivejoy);
-        model.addAttribute("totalTutoraOlive", totalTutoraOlive);
-        model.addAttribute("periodosSalsa", periodosSalsa);
-        model.addAttribute("periodosLivejoy", periodosLivejoy);
-        model.addAttribute("periodosOlive", periodosOlive);
-        model.addAttribute("registros", registros);
-        model.addAttribute("periodosDisponibles", periodosDisponibles);
-        model.addAttribute("periodoSeleccionado", periodoSeleccionado);
+
+        Map<String, List<Map<String, Object>>> resultado = new HashMap<>();
+        resultado.put("SALSA", salsaRecords);
+        resultado.put("LIVEJOY", livejoyRecords);
+        resultado.put("OLIVE", oliveRecords);
+        return resultado;
     }
 
     /**
